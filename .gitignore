@@ -2,10 +2,9 @@
 !*/
 
 !src/
-!src/**.c
-!src/**.h
+!src/**
 
 !build/
 !build/*.sh
 !build/*.fs
-!build/*.lua
+premake.lua

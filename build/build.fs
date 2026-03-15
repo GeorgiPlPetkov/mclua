@@ -1,8 +1,6 @@
 function mcp-build
-    cd "build"
-    premake5 gmake 
+    premake5 gmake
     make MyCoolVM
-    cd ".."
 end
 
 function mcp-clean
