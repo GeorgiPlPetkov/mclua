@@ -7,4 +7,4 @@
 !build/
 !build/*.sh
 !build/*.fs
-premake.lua
+!premake.lua

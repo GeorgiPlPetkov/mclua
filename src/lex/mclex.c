@@ -6,8 +6,6 @@
 
 #include "mclex.h"
 
-#define CURTKN(L) (L->token_array.tkns[L->token_array.len])
-
 #define MAX_TOKENS  (1028)
 #define MAX_IDNAMES (32)
 #define MAX_NUMLEN  (17)
@@ -17,7 +15,7 @@ static char mclex_advance(LexState* lexstate);
 static char mclex_isid(char c);
 static void mclex_lexnumber(LexState* lexstate);
 static void mclex_lexid(LexState *lexstate);
-static void mclex_next_token(LexState* lexstate);
+static void mclex_set_next_token(LexState* lexstate);
 
 i8 mclex_init(LexState* lexstate) {
     lexstate->token_array.tkns = (Token*) calloc(MAX_TOKENS, sizeof(Token));
@@ -45,31 +43,42 @@ i8 mclex_lexall(LexState* lexstate, str8* sstr) {
     lexstate->curr_char_idx = 0;
 
     while (lexstate->token_array.len < lexstate->token_array.cap) {
-        mclex_next_token(lexstate);
+        mclex_set_next_token(lexstate);
 
         if (CURTKN(lexstate).token_number == TK_EOS) {
             break;
         }
 
         lexstate->token_array.len += 1;
-
     }
 
     return 0;
 }
 
-static void mclex_next_token(LexState* lexstate) {
+static void mclex_set_next_token(LexState* lexstate) {
     while (isspace(mclex_peek(lexstate))) {
         mclex_advance(lexstate);
     }
 
     char c = mclex_peek(lexstate);
-    if ('\0' == c) {
-        CURTKN(lexstate).token_number = TK_EOS;
-    } else if (isdigit(c)) {
+
+    if (isdigit(c)) {
         mclex_lexnumber(lexstate);
-    } else if (mclex_isid(c)) {
+    }
+    if (mclex_isid(c)) {
         mclex_lexid(lexstate);
+    }
+
+    switch (c) {
+        case '\0':
+            CURTKN(lexstate).token_number = TK_EOS;
+            break;
+        case '\r':
+            mclex_advance(lexstate);
+        case '\n':
+            mclex_advance(lexstate);
+            lexstate->linecnt += 1;
+            break;
     }
 
     mclex_advance(lexstate);

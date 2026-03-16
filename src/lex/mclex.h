@@ -5,7 +5,6 @@
 #include "mctypes.h"
 #include "mcstr.h"
 
-
 #define FIRST_RESERVED (257)
 #define TK2IDX(tknum)  (((tknum) - FIRST_RESERVED))
 
@@ -22,7 +21,7 @@ enum RESERVED_TK {
 #define NUM_RESERVED ((i32) (TK_WHILE - FIRST_RESERVE + 1))
 
 /* ORDER RESERVED_TK to arr */
-static const char* const tokenstr [] = {
+static const char* const tokenstr[] = {
     "and", "break", "do", "else", "elseif",
     "end", "false", "for", "function", "if",
     "in", "local", "nil", "not", "or", "repeat",
@@ -53,11 +52,12 @@ typedef struct tknarr {
 typedef struct LexState {
     u64 curr_char_idx;
     u64 linecnt;
-    u64 last_consumed_line;
     u64 nest_depth;
     str8* input;
+
     TokenArray token_array;
 } LexState;
+#define CURTKN(lexstate) ((lexstate)->token_array.tkns[(lexstate)->token_array.len])
 
 i8 mclex_init(LexState* lexstate);
 void mclex_free(LexState* lexstate);

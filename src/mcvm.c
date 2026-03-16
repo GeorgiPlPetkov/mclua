@@ -86,7 +86,7 @@ LOADSCRIPTEXIT:
 }
 
 static i8 interactive(str8* istr) {
-    printf("interactive? More like hardcoded lol")
+    printf("interactive? More like hardcoded lol\n");
 
     char *lua_script =
         "local x = 10\n"
@@ -101,13 +101,16 @@ static void print_tokens(LexState* lstate) {
     TokenArray* tkn_arr = &lstate->token_array;
 
     for (u64 idx = 0; idx < tkn_arr->len; idx += 1) {
-        printf("Token %lu: %ld", idx, tkn_arr->tkns[idx].token_number);
+        printf("[%lu]: %ld | %s | ",
+               idx,
+               tkn_arr->tkns[idx].token_number,
+               TK2STR(tkn_arr->tkns[idx].token_number));
 
         if (tkn_arr->tkns[idx].token_number == TK_NUMBER) {
-            printf(" (number=%f)", tkn_arr->tkns[idx].semantics.number);
+            printf("%f", tkn_arr->tkns[idx].semantics.number);
         }
         if (tkn_arr->tkns[idx].token_number == TK_NAME) {
-            printf(" (name=%s)", tkn_arr->tkns[idx].semantics.string.content);
+            printf("%s", tkn_arr->tkns[idx].semantics.string.content);
         }
 
         printf("\n");
