@@ -90,9 +90,9 @@ static i8 interactive(str8* istr) {
     char *lua_script =
         "local x = 10\n"
         "function my_cool_lua_function()\n"
-        "   return x\n"
+        "    return x\n"
         "end\n"
-        "print(\"x=\"..my_coo_lua_function())\n";
+        "print(\"x=\"..my_cool_lua_function())\n";
 
     return str8_attach(istr, lua_script);
 }

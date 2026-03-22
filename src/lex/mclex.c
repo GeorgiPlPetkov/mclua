@@ -10,9 +10,10 @@
 static char mclex_peek(LexState* lexstate);
 static char mclex_advance(LexState* lexstate);
 static char mclex_isid(char c);
-static i64  mclex_lexnumber(LexState* lexstate);
-static i64  mclex_lexid(LexState* lexstate);
-static i64  mclex_set_next_token(LexState* lexstate);
+static i64 mclex_lexnumber(LexState* lexstate);
+static i64 mclex_lexid(LexState* lexstate);
+static i64 mclex_set_next_token(LexState* lexstate);
+static i64 mclex_lexterminals(LexState* lexstate);
 
 i8 mclex_init(LexState* lexstate) {
     lexstate->token_array.tkns = (Token*) calloc(MAX_TOKENS, sizeof(Token));
@@ -61,7 +62,7 @@ void mclex_printtokens(LexState* lstate) {
     char smallstr = 0;
     char* tkn_value = NULL;
 
-    for (u64 idx = 0; idx < tkn_arr->len; idx += 1) {
+    for (u64 idx = 0; idx < tkn_arr->cap; idx += 1) {
         if (FIRST_RESERVED > tkn_arr->tkns[idx].token_number) {
             tkn_value = &smallstr;
             smallstr = tkn_arr->tkns[idx].token_number;
@@ -85,33 +86,20 @@ void mclex_printtokens(LexState* lstate) {
     }
 }
 
-static i64  mclex_set_next_token(LexState* lexstate) {
+static i64 mclex_set_next_token(LexState* lexstate) {
     while (isspace(mclex_peek(lexstate))) {
         mclex_advance(lexstate);
     }
 
-    char c = mclex_peek(lexstate);
-    if (isdigit(c)) {
+    char symbol = mclex_peek(lexstate);
+    if (isdigit(symbol)) {
         return mclex_lexnumber(lexstate);
     }
-    if (mclex_isid(c)) {
+    if (mclex_isid(symbol)) {
         return mclex_lexid(lexstate);
     }
 
-    switch (c) {
-        case '\0':
-            CURTKN(lexstate).token_number = TK_EOS;
-            return TK_EOS;
-        case '\r':
-            mclex_advance(lexstate);
-        case '\n':
-            mclex_advance(lexstate);
-            lexstate->linecnt += 1;
-    }
-
-    mclex_advance(lexstate);
-    CURTKN(lexstate).token_number = c;
-    return c;
+    return mclex_lexterminals(lexstate);
 }
 
 static char mclex_peek(LexState* lexstate) {
@@ -130,11 +118,11 @@ static char mclex_advance(LexState* lexstate) {
     return lexstate->input->content[lexstate->curr_char_idx++];
 }
 
-static char mclex_isid(char c) {
-    return isalnum(c) || c == '_';
+static char mclex_isid(char symbol) {
+    return isalnum(symbol) || symbol == '_';
 }
 
-static i64  mclex_lexnumber(LexState* lexstate) {
+static i64 mclex_lexnumber(LexState* lexstate) {
     char numbfr[MAX_NUMLEN];
     i8 idx = 0;
 
@@ -153,35 +141,66 @@ static i64  mclex_lexnumber(LexState* lexstate) {
     return TK_NUMBER;
 }
 
-static i64  mclex_lexid(LexState *lexstate) {
-    char idbfr[MAX_NUMLEN];
-    i8 idx = 0;
+static i64 mclex_lexid(LexState* lexstate) {
+    char idbfr[MAX_IDLEN];
+    i64 idx = 0;
 
     while (mclex_isid(mclex_peek(lexstate))) {
         idbfr[idx] = mclex_advance(lexstate);
         idx += 1;
 
-        if (MAX_NUMLEN < (1 + idx)) {
+        if (MAX_IDLEN < (1 + idx)) {
             break;
         }
     }
     idbfr[idx] = '\0';
 
-    i32 tokenid = -2;
-    if (0 == strcmp(idbfr, TK2STR(TK_LOCAL))) {
-        tokenid = TK_LOCAL;
-    } else if (0 == strcmp(idbfr, TK2STR(TK_FUNCTION))) {
-        tokenid = TK_FUNCTION;
-    } else if (0 == strcmp(idbfr, TK2STR(TK_RETURN))) {
-        tokenid = TK_RETURN;
-    }
-    else {
-        tokenid = TK_NAME;
-        // [TODO] hidden allocation is a crime, fix later
-        str8_attach(&CURTKN(lexstate).semantics.string,
-                    strndup(idbfr, MAX_NUMLEN));
+    for (idx = FIRST_RESERVED; idx <= TK_WHILE; idx += 1) {
+        if (0 == strncmp(idbfr, TK2STR(idx), MAX_IDLEN)) {
+            CURTKN(lexstate).token_number = idx;
+            return idx;
+        }
     }
 
-    CURTKN(lexstate).token_number = tokenid;
-    return tokenid;
+    // [TODO] hidden allocation is a crime, fix later
+    str8_attach(&CURTKN(lexstate).semantics.string,
+                strndup(idbfr, MAX_IDLEN));
+
+    CURTKN(lexstate).token_number = TK_NAME;
+    return TK_NAME;
+}
+
+static i64 mclex_lexterminals(LexState* lexstate) {
+    const char termsyms[6] = ".=<>~\0";
+    char termbfr[MAX_TERMLEN] = {0};
+    i64 idx = 0;
+    char symbol = mclex_peek(lexstate);
+
+    while (NULL != strchr(termsyms, symbol)) {
+        termbfr[idx] = mclex_advance(lexstate);
+        symbol = mclex_peek(lexstate);
+        idx += 1;
+
+        if (MAX_TERMLEN <= (1 + idx)) {
+            return -1;
+        }
+    }
+
+    if (1 == idx) {
+        symbol = termbfr[0];
+    } else if (2 <= idx) {
+        termbfr[idx] = '\0';
+        for (idx = TK_CONCAT; idx <= TK_EOS; idx += 1) {
+            if (0 == strncmp(termbfr, TK2STR(idx), MAX_TERMLEN)) {
+                CURTKN(lexstate).token_number = idx;
+                return idx;
+            }
+        }
+
+        return -1;
+    }
+
+    mclex_advance(lexstate);
+    CURTKN(lexstate).token_number = symbol;
+    return symbol;
 }
