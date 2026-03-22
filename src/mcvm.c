@@ -10,7 +10,6 @@
 static void loghelp(void);
 static i8 loadscriptfile(str8* fstr, const char* const path);
 static i8 interactive(str8* istr);
-static void print_tokens(LexState* lstate);
 
 int main(int argc, const char** argv) {
     str8 fbfr;
@@ -36,7 +35,7 @@ int main(int argc, const char** argv) {
         } else if (0 == strncmp(argv[argIdx], "-i", 2)) {
             interactive(&fbfr);
         } else if ((0 == strncmp(argv[argIdx], "-h", 2))
-             || (0 == strncmp(argv[argIdx], "--help", 5))) {
+                   || (0 == strncmp(argv[argIdx], "--help", 5))) {
             loghelp();
         }
         else {
@@ -47,8 +46,8 @@ int main(int argc, const char** argv) {
     }
 
     mclex_init(&lstate);
-    mclex_lexall(&lstate, &fbfr);
-    print_tokens(&lstate);
+    mclex_lexscript(&lstate, &fbfr);
+    mclex_printtokens(&lstate);
 
     mclex_free(&lstate);
     if (1 == isfile) {
@@ -92,27 +91,8 @@ static i8 interactive(str8* istr) {
         "local x = 10\n"
         "function my_cool_lua_function()\n"
         "   return x\n"
-        "end\n";
+        "end\n"
+        "print(\"x=\"..my_coo_lua_function())\n";
 
     return str8_attach(istr, lua_script);
-}
-
-static void print_tokens(LexState* lstate) {
-    TokenArray* tkn_arr = &lstate->token_array;
-
-    for (u64 idx = 0; idx < tkn_arr->len; idx += 1) {
-        printf("[%lu]: %ld | %s | ",
-               idx,
-               tkn_arr->tkns[idx].token_number,
-               TK2STR(tkn_arr->tkns[idx].token_number));
-
-        if (tkn_arr->tkns[idx].token_number == TK_NUMBER) {
-            printf("%f", tkn_arr->tkns[idx].semantics.number);
-        }
-        if (tkn_arr->tkns[idx].token_number == TK_NAME) {
-            printf("%s", tkn_arr->tkns[idx].semantics.string.content);
-        }
-
-        printf("\n");
-    }
 }

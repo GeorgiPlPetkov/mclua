@@ -1,12 +1,9 @@
 #pragma once
 
-#include <stdio.h>
-
 #include "mctypes.h"
 #include "mcstr.h"
 
 #define FIRST_RESERVED (257)
-#define TK2IDX(tknum)  (((tknum) - FIRST_RESERVED))
 
 enum RESERVED_TK {
     TK_AND = FIRST_RESERVED, TK_BREAK,
@@ -18,10 +15,8 @@ enum RESERVED_TK {
     TK_STRING, TK_EOS
 };
 
-#define NUM_RESERVED ((i32) (TK_WHILE - FIRST_RESERVE + 1))
-
 /* ORDER RESERVED_TK to arr */
-static const char* const tokenstr[] = {
+static char* tokenstr[] = {
     "and", "break", "do", "else", "elseif",
     "end", "false", "for", "function", "if",
     "in", "local", "nil", "not", "or", "repeat",
@@ -30,9 +25,7 @@ static const char* const tokenstr[] = {
     "*number", "*string", "<eof>"
 };
 
-#define TK2STR(tknum) ((tokenstr[TK2IDX(tknum)]))
-
-typedef union {
+typedef union SemanticInfo {
     i64  integer;
     f64  number;
     str8 string;
@@ -43,7 +36,7 @@ typedef struct Token {
     SemanticInfo semantics;
 } Token;
 
-typedef struct tknarr {
+typedef struct TokenArray {
     Token* tkns;
     u32 cap;
     u32 len;
@@ -57,9 +50,20 @@ typedef struct LexState {
 
     TokenArray token_array;
 } LexState;
-#define CURTKN(lexstate) ((lexstate)->token_array.tkns[(lexstate)->token_array.len])
+
+#define MAX_TOKENS (1024)
+#define MAX_IDLEN  (64)
+#define MAX_NUMLEN (17)
+#define NUM_RESERVED ((i32) (TK_WHILE - FIRST_RESERVE + 1))
+#define TK2IDX(token_num) ((token_num) - (FIRST_RESERVED))
+#define TK2STR(token_num) (tokenstr[TK2IDX(token_num)])
+
+#define CURTKN(lexstate) \
+        ((lexstate)->token_array.tkns[(lexstate)->token_array.len])
 
 i8 mclex_init(LexState* lexstate);
 void mclex_free(LexState* lexstate);
 
-i8 mclex_lexall(LexState* lexstate, str8* script);
+i8 mclex_lexscript(LexState* lexstate, str8* script);
+
+void mclex_printtokens(LexState* lexstate);

@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <ctype.h>
 #include <string.h>
 
@@ -6,16 +7,12 @@
 
 #include "mclex.h"
 
-#define MAX_TOKENS  (1028)
-#define MAX_IDNAMES (32)
-#define MAX_NUMLEN  (17)
-
 static char mclex_peek(LexState* lexstate);
 static char mclex_advance(LexState* lexstate);
 static char mclex_isid(char c);
-static void mclex_lexnumber(LexState* lexstate);
-static void mclex_lexid(LexState *lexstate);
-static void mclex_set_next_token(LexState* lexstate);
+static i64  mclex_lexnumber(LexState* lexstate);
+static i64  mclex_lexid(LexState* lexstate);
+static i64  mclex_set_next_token(LexState* lexstate);
 
 i8 mclex_init(LexState* lexstate) {
     lexstate->token_array.tkns = (Token*) calloc(MAX_TOKENS, sizeof(Token));
@@ -34,54 +31,87 @@ void mclex_free(LexState* lexstate) {
     free(lexstate->token_array.tkns);
 }
 
-i8 mclex_lexall(LexState* lexstate, str8* sstr) {
-    if ((NULL == lexstate) || (NULL == sstr)) {
+i8 mclex_lexscript(LexState* lexstate, str8* script) {
+    i32 tknnum = 0;
+
+    if ((NULL == lexstate) || (NULL == script)) {
         return -1;
     }
 
-    lexstate->input = sstr;
+    lexstate->input = script;
     lexstate->curr_char_idx = 0;
 
     while (lexstate->token_array.len < lexstate->token_array.cap) {
-        mclex_set_next_token(lexstate);
-
-        if (CURTKN(lexstate).token_number == TK_EOS) {
-            break;
+        tknnum = mclex_set_next_token(lexstate);
+        if (-1 == tknnum) {
+            return -1;
         }
 
         lexstate->token_array.len += 1;
+        if (TK_EOS == tknnum) {
+            return 0;
+        }
     }
 
-    return 0;
+    return -2;
 }
 
-static void mclex_set_next_token(LexState* lexstate) {
+void mclex_printtokens(LexState* lstate) {
+    TokenArray* tkn_arr = &lstate->token_array;
+    char smallstr = 0;
+    char* tkn_value = NULL;
+
+    for (u64 idx = 0; idx < tkn_arr->len; idx += 1) {
+        if (FIRST_RESERVED > tkn_arr->tkns[idx].token_number) {
+            tkn_value = &smallstr;
+            smallstr = tkn_arr->tkns[idx].token_number;
+        } else {
+            tkn_value = TK2STR(tkn_arr->tkns[idx].token_number);
+        }
+
+        printf("[%lu]: %ld | %s | ",
+               idx,
+               tkn_arr->tkns[idx].token_number,
+               tkn_value);
+
+        if (tkn_arr->tkns[idx].token_number == TK_NUMBER) {
+            printf("%f", tkn_arr->tkns[idx].semantics.number);
+        }
+        if (tkn_arr->tkns[idx].token_number == TK_NAME) {
+            printf("%s", tkn_arr->tkns[idx].semantics.string.content);
+        }
+
+        printf("\n");
+    }
+}
+
+static i64  mclex_set_next_token(LexState* lexstate) {
     while (isspace(mclex_peek(lexstate))) {
         mclex_advance(lexstate);
     }
 
     char c = mclex_peek(lexstate);
-
     if (isdigit(c)) {
-        mclex_lexnumber(lexstate);
+        return mclex_lexnumber(lexstate);
     }
     if (mclex_isid(c)) {
-        mclex_lexid(lexstate);
+        return mclex_lexid(lexstate);
     }
 
     switch (c) {
         case '\0':
             CURTKN(lexstate).token_number = TK_EOS;
-            break;
+            return TK_EOS;
         case '\r':
             mclex_advance(lexstate);
         case '\n':
             mclex_advance(lexstate);
             lexstate->linecnt += 1;
-            break;
     }
 
     mclex_advance(lexstate);
+    CURTKN(lexstate).token_number = c;
+    return c;
 }
 
 static char mclex_peek(LexState* lexstate) {
@@ -104,7 +134,7 @@ static char mclex_isid(char c) {
     return isalnum(c) || c == '_';
 }
 
-static void mclex_lexnumber(LexState* lexstate) {
+static i64  mclex_lexnumber(LexState* lexstate) {
     char numbfr[MAX_NUMLEN];
     i8 idx = 0;
 
@@ -120,23 +150,24 @@ static void mclex_lexnumber(LexState* lexstate) {
 
     CURTKN(lexstate).token_number = TK_NUMBER;
     CURTKN(lexstate).semantics.number = atof(numbfr);
+    return TK_NUMBER;
 }
 
-static void mclex_lexid(LexState *lexstate) {
-    char idbfr[MAX_IDNAMES];
+static i64  mclex_lexid(LexState *lexstate) {
+    char idbfr[MAX_NUMLEN];
     i8 idx = 0;
 
     while (mclex_isid(mclex_peek(lexstate))) {
         idbfr[idx] = mclex_advance(lexstate);
         idx += 1;
 
-        if (MAX_IDNAMES < (1 + idx)) {
+        if (MAX_NUMLEN < (1 + idx)) {
             break;
         }
     }
     idbfr[idx] = '\0';
 
-    i64 tokenid = 0;
+    i32 tokenid = -2;
     if (0 == strcmp(idbfr, TK2STR(TK_LOCAL))) {
         tokenid = TK_LOCAL;
     } else if (0 == strcmp(idbfr, TK2STR(TK_FUNCTION))) {
@@ -146,8 +177,11 @@ static void mclex_lexid(LexState *lexstate) {
     }
     else {
         tokenid = TK_NAME;
-        CURTKN(lexstate).semantics.string.content = strdup(idbfr);
+        // [TODO] hidden allocation is a crime, fix later
+        str8_attach(&CURTKN(lexstate).semantics.string,
+                    strndup(idbfr, MAX_NUMLEN));
     }
 
     CURTKN(lexstate).token_number = tokenid;
+    return tokenid;
 }
