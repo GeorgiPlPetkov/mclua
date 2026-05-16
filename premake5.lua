@@ -1,3 +1,16 @@
+newaction {
+   trigger = "clean",
+   description = "Remove all generated and build files",
+   execute = function()
+      print("Cleaning...")
+      os.rmdir("./bin")
+      os.rmdir("./obj")
+      os.remove("Makefile")
+      os.remove("*.make")
+      print("Done.")
+   end
+}
+
 workspace "MyCoolProject"
    configurations { "Debug", "Release" }
    platforms { "x64" }
@@ -5,8 +18,13 @@ workspace "MyCoolProject"
 project("MyCoolVM")
    kind("ConsoleApp")
    language("C")
+   cdialect("C23")
 
    targetdir("bin/%{cfg.buildcfg}")
+
+   postbuildcommands {
+      "{COPYDIR} %{wks.location}/res %{cfg.targetdir}"
+   }
 
    toolset("clang")
    linker("LLD")
