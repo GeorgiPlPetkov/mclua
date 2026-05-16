@@ -1,25 +1,39 @@
+#include <stdlib.h>
+
 #include "mcfs.h"
 #include "mcstr.h"
 #include "mctypes.h"
-#include "mclex.h"
 
 #include "mcvm.h"
 
 #define MAXFILESIZE (1024)
+#define MAX_VARNAMES (1024)
+#define MAX_VARMEM (MAX_VARNAMES * 32)
 
 i8 mcvm_init(VMState* vm, VMConfig* cfg) {
     i8 initcode = 0;
+    (void) cfg;
 
-    if (NULL == cfg) {
-        vm->config.MAX_MEM = 1024 * 1024;
-        vm->config.MAX_FILE_SIZE = 1024 * 1024;
-    } else {
-        vm->config.MAX_MEM = cfg->MAX_MEM;
-        vm->config.MAX_FILE_SIZE = cfg->MAX_FILE_SIZE;
+    char* strtbl_bfr = (char*) malloc(MAX_VARMEM);
+    if (NULL == strtbl_bfr) {
+        printf("OOMed on the string table oof\n");
+        goto VMINITEXIT;
     }
-
+    initcode = mcstrtbl_init(&vm->stringtable,
+            strtbl_bfr,
+            MAX_VARMEM,
+            MAX_VARNAMES);
+    if (0 != initcode) {
+        printf("failed to initialize string table\n");
+        goto VMINITEXIT;
+    }
     initcode = mclex_init(&vm->lexstate);
+    if (0 != initcode) {
+        printf("failed to initialize lexer\n");
+    }
+    vm->lexstate.stringtable = &vm->stringtable;
 
+VMINITEXIT:
     return initcode;
 }
 

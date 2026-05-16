@@ -31,12 +31,6 @@ i8 mclex_init(LexState* lexstate) {
 }
 
 void mclex_free(LexState* lexstate) {
-	for (u32 i = 0; i < lexstate->token_array.len; i += 1) {
-		i64 tn = lexstate->token_array.tkns[i].token_number;
-		if ((TK_NAME == tn) || (TK_STRING == tn)) {
-			str8_free(&lexstate->token_array.tkns[i].semantics.string);
-		}
-	}
 	free(lexstate->token_array.tkns);
 }
 
@@ -68,10 +62,10 @@ i8 mclex_lexscript_str8(LexState* lexstate, str8* script) {
 
 void mclex_logtokens(LexState* lstate) {
 	TokenArray* tkn_arr = &lstate->token_array;
-	char  smallstr  = 0;
+	char smallstr = 0;
 	char* tkn_value = NULL;
-	i64   tkn_num   = 0;
-	i64   tkn_idx   = 0;
+	i64 tkn_num = 0;
+	i64 tkn_idx = 0;
 
 	for (u64 idx = 0; idx < tkn_arr->len; idx += 1) {
 		tkn_num = tkn_arr->tkns[idx].token_number;
@@ -79,7 +73,7 @@ void mclex_logtokens(LexState* lstate) {
 
 		if (FIRST_RESERVED > tkn_num) {
 			tkn_value = &smallstr;
-			smallstr  = (char) tkn_num;
+			smallstr = (char) tkn_num;
 		} else if ((tkn_idx >= 0)
 		           && ((u64) tkn_idx < (sizeof(tokenstr) / sizeof(tokenstr[0])))) {
 			tkn_value = (char*) TK2STR(tkn_num);
@@ -192,14 +186,20 @@ static f64 mclex_lexnumber(LexState* lexstate) {
 static i64 mclex_lexid(LexState* lexstate) {
 	char idbfr[MAX_IDLEN];
 	u64 wordlen = mclex_readoutword(lexstate, idbfr, MAX_IDLEN);
+	const char* tkname = NULL;
 
-	for (i64 idx = FIRST_RESERVED; idx <= TK_WHILE; idx += 1) {
-		if (0 == strncmp(idbfr, TK2STR(idx), wordlen)) {
-			return idx;
+	for (i64 tokenidx = FIRST_RESERVED; tokenidx <= TK_WHILE; tokenidx += 1) {
+		if (0 == strncmp(idbfr, TK2STR(tokenidx), wordlen)) {
+			return tokenidx;
 		}
 	}
 
-	// cool allocation gooes here
+	tkname = mcstrtbl_intern(lexstate->stringtable, idbfr, wordlen);
+	if (NULL == tkname) {
+		return TK_ERR;
+	}
+
+	str8_attach_nt(&CURTKN(lexstate).semantics.string, tkname);
 	return TK_NAME;
 }
 

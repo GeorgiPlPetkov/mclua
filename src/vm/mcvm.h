@@ -1,15 +1,14 @@
 #pragma once
 
+#include "mcconfig.h"
+#include "mcstrtbl.h"
 #include "mclex.h"
-#include "mcstr.h"
 
-typedef struct vmcof {
-    u64 MAX_MEM;
-    u64 MAX_FILE_SIZE;
-} VMConfig;
+#include "mcstr.h"
 
 typedef struct gstate {
     VMConfig config;
+    StringTable stringtable;
     LexState lexstate;
 } VMState;
 
