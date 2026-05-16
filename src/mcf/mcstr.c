@@ -10,25 +10,37 @@ i8 str8_alloc(str8* str, u64 cap) {
     }
 
     str->capacity = cap;
-    str->lenght = 0;
+    str->length = 0;
+
+    return 0;
+}
+
+i8 str8_attach_nt(str8* str, const char* strnt) {
+    if (NULL == strnt) {
+        return -1;
+    }
+
+    str->content = (char*) strnt;
+    str->capacity = strlen((char*) strnt);
+    str->length = str->capacity;
 
     return 0;
 }
 
 void str8_free(str8* str) {
     free(str->content);
+
+    str->content = NULL;
     str->capacity = 0;
-    str->lenght = 0;
+    str->length = 0;
 }
 
-i8 str8_attach(str8* str, char* bfr) {
-    if (NULL == bfr) {
-        return -1;
-    }
+const char* str8_dattach_nt(str8* str) {
+    const char* content = (const char*) str->content;
 
-    str->content = bfr;
-    str->capacity = strlen(bfr);
-    str->lenght = str->capacity;
+    str->content = NULL;
+    str->capacity = 0;
+    str->length = 0;
 
-    return 0;
+    return content;
 }

@@ -39,11 +39,18 @@ typedef double f64;
 #define MAXF64 (1.7976931348623158e+308)
 #define MINF64 (2.2250738585072014e-308)
 
-// type operations:
+// numeric operations:
 
 #define MinI(i1, i2) (((i1) < (i2)) ? (i1) : (i2))
 #define MaxI(i1, i2) (((i1) > (i2)) ? (i1) : (i2))
-#define IsPow2(x) (((x) & ((x) - 1)) == 0)
+#define IsPow2(x)    (((x) & ((x) - 1)) == 0)
+
+// awkwards:
+
+typedef unsigned char byte;
+typedef unsigned char uchar;
+typedef uintptr_t uptr;
+typedef intptr_t  iptr;
 
 typedef struct {
     u8* mem;

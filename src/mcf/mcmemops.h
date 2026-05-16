@@ -10,7 +10,7 @@
 #define MemsetZeroArray(ptr) MemsetZero((ptr), sizeof(ptr))
 
 #define Memcopy(dest, src, size) memmove((dest), (src), (size))
-#define MemcopyStruct(dest, src) memcopy((dest), (src), \
+#define MemcopyStruct(dest, src) Memcopy((dest), (src), \
         MinI(sizeof(*(dest)), sizeof(*(src))))
 #define MemcopyArray(dest, src) Memcopy((dest), (src), \
         MinI(sizeof(src), sizeof(dest)))
