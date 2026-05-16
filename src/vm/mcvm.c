@@ -30,8 +30,8 @@ void mcvm_free(VMState* vm) {
 i8 mcvm_parsestr8(VMState* vm, str8* str) {
     i8 rcode = 0;
 
-    rcode = mclex_lexscript(&vm->lexstate, str);
-    mclex_printtokens(&vm->lexstate);
+    rcode = mclex_lexscript_str8(&vm->lexstate, str);
+    mclex_logtokens(&vm->lexstate);
 
     return rcode;
 }

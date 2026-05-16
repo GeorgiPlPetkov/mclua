@@ -8,11 +8,12 @@
 
 static void loghelp(void);
 static const char* lua_script =
-    "local x = 10\n"
+    "local x = 67\n"
+    "local y = 0x1A4\n"
     "function my_cool_lua_function()\n"
-    "    return x\n"
+    "    return (x + y)\n"
     "end\n"
-    "print(\"x=\"..my_cool_lua_function())\n";
+    "print(\"result=\"..my_cool_lua_function())\n";
 
 int main(int argc, const char** argv) {
     int rcode = 0;

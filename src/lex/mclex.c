@@ -10,197 +10,260 @@
 static char mclex_peek(LexState* lexstate);
 static char mclex_advance(LexState* lexstate);
 static char mclex_isid(char c);
-static i64 mclex_lexnumber(LexState* lexstate);
+static u64 mclex_readoutword(LexState* lexstate, char* scratch, u64 ssize);
+static f64 mclex_lexnumber(LexState* lexstate);
 static i64 mclex_lexid(LexState* lexstate);
-static i64 mclex_set_next_token(LexState* lexstate);
+static i64 mclex_lexstring(LexState* lexstate);
+static i64 mclex_set_token(LexState* lexstate);
 static i64 mclex_lexterminals(LexState* lexstate);
 
 i8 mclex_init(LexState* lexstate) {
-    lexstate->token_array.tkns = (Token*) calloc(MAX_TOKENS, sizeof(Token));
+	lexstate->token_array.tkns = (Token*) calloc(MAX_TOKENS, sizeof(Token));
 
-    if (NULL == lexstate->token_array.tkns) {
-        return -1;
-    }
+	if (NULL == lexstate->token_array.tkns) {
+		return -1;
+	}
 
-    lexstate->token_array.cap = MAX_TOKENS;
-    lexstate->token_array.len = 0;
+	lexstate->token_array.cap = MAX_TOKENS;
+	lexstate->token_array.len = 0;
 
-    return 0;
+	return 0;
 }
 
 void mclex_free(LexState* lexstate) {
-    free(lexstate->token_array.tkns);
+	for (u32 i = 0; i < lexstate->token_array.len; i += 1) {
+		i64 tn = lexstate->token_array.tkns[i].token_number;
+		if ((TK_NAME == tn) || (TK_STRING == tn)) {
+			str8_free(&lexstate->token_array.tkns[i].semantics.string);
+		}
+	}
+	free(lexstate->token_array.tkns);
 }
 
-i8 mclex_lexscript(LexState* lexstate, str8* script) {
-    i32 tknnum = 0;
+i8 mclex_lexscript_str8(LexState* lexstate, str8* script) {
+	i64 tknnum = 0;
 
-    if ((NULL == lexstate) || (NULL == script)) {
-        return -1;
-    }
+	if ((NULL == lexstate) || (NULL == script)) {
+		return -1;
+	}
 
-    lexstate->input = script;
-    lexstate->curr_char_idx = 0;
+	lexstate->input = script;
+	lexstate->curr_char_idx = 0;
+	lexstate->linecnt = 0;
 
-    while (lexstate->token_array.len < lexstate->token_array.cap) {
-        tknnum = mclex_set_next_token(lexstate);
-        if (-1 == tknnum) {
-            return -1;
-        }
+	while (lexstate->token_array.len < lexstate->token_array.cap) {
+		tknnum = mclex_set_token(lexstate);
+		if (TK_ERR == tknnum) {
+			return TK_ERR;
+		}
 
-        lexstate->token_array.len += 1;
-        if (TK_EOS == tknnum) {
-            return 0;
-        }
-    }
+		lexstate->token_array.len += 1;
+		if (TK_EOS == tknnum) {
+			return 0;
+		}
+	}
 
-    return -2;
+	return -2;
 }
 
-void mclex_printtokens(LexState* lstate) {
-    TokenArray* tkn_arr = &lstate->token_array;
-    char smallstr = 0;
-    char* tkn_value = NULL;
+void mclex_logtokens(LexState* lstate) {
+	TokenArray* tkn_arr = &lstate->token_array;
+	char  smallstr  = 0;
+	char* tkn_value = NULL;
+	i64   tkn_num   = 0;
+	i64   tkn_idx   = 0;
 
-    for (u64 idx = 0; idx < tkn_arr->cap; idx += 1) {
-        if (FIRST_RESERVED > tkn_arr->tkns[idx].token_number) {
-            tkn_value = &smallstr;
-            smallstr = tkn_arr->tkns[idx].token_number;
-        } else {
-            tkn_value = TK2STR(tkn_arr->tkns[idx].token_number);
-        }
+	for (u64 idx = 0; idx < tkn_arr->len; idx += 1) {
+		tkn_num = tkn_arr->tkns[idx].token_number;
+		tkn_idx = TK2IDX(tkn_num);
 
-        printf("[%lu]: %ld | %s | ",
-               idx,
-               tkn_arr->tkns[idx].token_number,
-               tkn_value);
+		if (FIRST_RESERVED > tkn_num) {
+			tkn_value = &smallstr;
+			smallstr  = (char) tkn_num;
+		} else if ((tkn_idx >= 0)
+		           && ((u64) tkn_idx < (sizeof(tokenstr) / sizeof(tokenstr[0])))) {
+			tkn_value = (char*) TK2STR(tkn_num);
+		} else {
+			tkn_value = "you shouldn't see this";
+		}
 
-        if (tkn_arr->tkns[idx].token_number == TK_NUMBER) {
-            printf("%f", tkn_arr->tkns[idx].semantics.number);
-        }
-        if (tkn_arr->tkns[idx].token_number == TK_NAME) {
-            printf("%s", tkn_arr->tkns[idx].semantics.string.content);
-        }
+		printf("[%lu]: %ld | %s | ", idx, tkn_num, tkn_value);
 
-        printf("\n");
-    }
+		if (TK_NUMBER == tkn_num) {
+			printf("%f", tkn_arr->tkns[idx].semantics.number);
+		} else if ((TK_NAME == tkn_num) || (TK_STRING == tkn_num)) {
+			printf("%s", tkn_arr->tkns[idx].semantics.string.content);
+		}
+
+		printf("\n");
+	}
 }
 
-static i64 mclex_set_next_token(LexState* lexstate) {
-    while (isspace(mclex_peek(lexstate))) {
-        mclex_advance(lexstate);
-    }
+static i64 mclex_set_token(LexState* lexstate) {
+	char symbol = '\0';
+	i64 tknnum = TK_ERR;
+	do {
+		symbol = mclex_peek(lexstate);
+		if (!isspace((uchar) symbol)) {
+			break;
+		}
+		if ('\n' == symbol) {
+			lexstate->linecnt += 1;
+		}
+		mclex_advance(lexstate);
+	} while (1);
 
-    char symbol = mclex_peek(lexstate);
-    if (isdigit(symbol)) {
-        return mclex_lexnumber(lexstate);
-    }
-    if (mclex_isid(symbol)) {
-        return mclex_lexid(lexstate);
-    }
+	if (isdigit((uchar) symbol)) {
+		CURTKN(lexstate).token_number = TK_NUMBER;
+		CURTKN(lexstate).semantics.number = mclex_lexnumber(lexstate);
+		return TK_NUMBER;
+	}
 
-    return mclex_lexterminals(lexstate);
+	if (mclex_isid(symbol)) {
+		// on TK_NAME handles string allocation for name
+		tknnum = mclex_lexid(lexstate);
+		CURTKN(lexstate).token_number = tknnum;
+		return tknnum;
+	}
+
+	if ('"' == symbol) {
+		// samesies here
+		tknnum = mclex_lexstring(lexstate);
+		CURTKN(lexstate).token_number = tknnum;
+		return tknnum;
+	}
+
+	tknnum = mclex_lexterminals(lexstate);
+	CURTKN(lexstate).token_number = tknnum;
+	return tknnum;
 }
 
 static char mclex_peek(LexState* lexstate) {
-    if (lexstate->curr_char_idx >= lexstate->input->lenght) {
-        return '\0';
-    }
+	if (lexstate->curr_char_idx >= lexstate->input->length) {
+		return '\0';
+	}
 
-    return lexstate->input->content[lexstate->curr_char_idx];
+	return lexstate->input->content[lexstate->curr_char_idx];
 }
 
 static char mclex_advance(LexState* lexstate) {
-    if (lexstate->curr_char_idx >= lexstate->input->lenght) {
-        return '\0';
-    }
+	if (lexstate->curr_char_idx >= lexstate->input->length) {
+		return '\0';
+	}
 
-    return lexstate->input->content[lexstate->curr_char_idx++];
+	return lexstate->input->content[lexstate->curr_char_idx++];
 }
 
 static char mclex_isid(char symbol) {
-    return isalnum(symbol) || symbol == '_';
+	return isalpha((uchar) symbol) || ('_' == symbol);
 }
 
-static i64 mclex_lexnumber(LexState* lexstate) {
-    char numbfr[MAX_NUMLEN];
-    i8 idx = 0;
+static u64 mclex_readoutword(LexState* lexstate, char* buf, u64 ssize) {
+	u64 idx = 0;
+	const char termsyms[] = " .=<>~:;,+-*/%^#&|()[]{}\"\'\t\n\r";
+	char sym = '\0';
 
-    while (isdigit(mclex_peek(lexstate))) {
-        numbfr[idx] = mclex_advance(lexstate);
-        idx += 1;
+	while ((ssize - 1) > idx) {
+		sym = mclex_peek(lexstate);
+		if (('\0' == sym) || (NULL != strchr(termsyms, sym))) {
+			break;
+		}
 
-        if (MAX_NUMLEN < (1 + idx)) {
-            break;
-        }
-    }
-    numbfr[idx] = '\0';
+		buf[idx] = mclex_advance(lexstate);
+		idx += 1;
+	}
+	buf[idx] = '\0';
 
-    CURTKN(lexstate).token_number = TK_NUMBER;
-    CURTKN(lexstate).semantics.number = atof(numbfr);
-    return TK_NUMBER;
+	return idx;
+}
+
+static f64 mclex_lexnumber(LexState* lexstate) {
+	char numbfr[MAX_NUMLEN];
+	i64 wordlen = mclex_readoutword(lexstate, numbfr, MAX_NUMLEN);
+
+	if (('0' == numbfr[0]) && (wordlen > 2)
+		&& (('x' == numbfr[1]) || ('X' == numbfr[1]))) {
+		return (f64) strtol(numbfr + 2, NULL, 16);
+	}
+
+	return strtod(numbfr, NULL);
 }
 
 static i64 mclex_lexid(LexState* lexstate) {
-    char idbfr[MAX_IDLEN];
-    i64 idx = 0;
+	char idbfr[MAX_IDLEN];
+	u64 wordlen = mclex_readoutword(lexstate, idbfr, MAX_IDLEN);
 
-    while (mclex_isid(mclex_peek(lexstate))) {
-        idbfr[idx] = mclex_advance(lexstate);
-        idx += 1;
+	for (i64 idx = FIRST_RESERVED; idx <= TK_WHILE; idx += 1) {
+		if (0 == strncmp(idbfr, TK2STR(idx), wordlen)) {
+			return idx;
+		}
+	}
 
-        if (MAX_IDLEN < (1 + idx)) {
-            break;
-        }
-    }
-    idbfr[idx] = '\0';
+	// cool allocation gooes here
+	return TK_NAME;
+}
 
-    for (idx = FIRST_RESERVED; idx <= TK_WHILE; idx += 1) {
-        if (0 == strncmp(idbfr, TK2STR(idx), MAX_IDLEN)) {
-            CURTKN(lexstate).token_number = idx;
-            return idx;
-        }
-    }
+static i64 mclex_lexstring(LexState* lexstate) {
+	char strbfr[MAX_STRLEN];
+	i64 idx = 0;
+	char symbol = '\0';
 
-    // [TODO] hidden allocation is a crime, fix later
-    str8_attach(&CURTKN(lexstate).semantics.string,
-                strndup(idbfr, MAX_IDLEN));
+	while ((MAX_STRLEN - 1) > idx) {
+		symbol = mclex_peek(lexstate);
+		if ('\0' == symbol) {
+			return TK_ERR;
+		}
 
-    CURTKN(lexstate).token_number = TK_NAME;
-    return TK_NAME;
+		if ('"' == symbol) {
+			if ('\\' != strbfr[idx - 1]) {
+				mclex_advance(lexstate);
+				break;
+			}
+		}
+		strbfr[idx] = mclex_advance(lexstate);
+		idx += 1;
+	}
+	strbfr[idx] = '\0';
+
+	// cool allocation gooes here
+	return TK_STRING;
 }
 
 static i64 mclex_lexterminals(LexState* lexstate) {
-    const char termsyms[6] = ".=<>~\0";
-    char termbfr[MAX_TERMLEN] = {0};
-    i64 idx = 0;
-    char symbol = mclex_peek(lexstate);
+	u64 len = 0;
+	const char simple_temrs[] = "+-*/%^#&|:;,()[]{}";
+	const char complex_temrs[] = ".=<>~";
+	char termbfr[MAX_TERMLEN];
+	char symbol = mclex_peek(lexstate);
 
-    while (NULL != strchr(termsyms, symbol)) {
-        termbfr[idx] = mclex_advance(lexstate);
-        symbol = mclex_peek(lexstate);
-        idx += 1;
+	if ('\0' == symbol) {
+		return TK_EOS;
+	}
 
-        if (MAX_TERMLEN <= (1 + idx)) {
-            return -1;
-        }
-    }
+	if (NULL != strchr(simple_temrs, symbol)) {
+		mclex_advance(lexstate);
+		return symbol;
+	}
 
-    if (1 == idx) {
-        symbol = termbfr[0];
-    } else if (2 <= idx) {
-        termbfr[idx] = '\0';
-        for (idx = TK_CONCAT; idx <= TK_EOS; idx += 1) {
-            if (0 == strncmp(termbfr, TK2STR(idx), MAX_TERMLEN)) {
-                CURTKN(lexstate).token_number = idx;
-                return idx;
-            }
-        }
+	while ((MAX_TERMLEN - 1) > len) {
+		symbol = mclex_peek(lexstate);
+		if (NULL == strchr(complex_temrs, symbol)) {
+			break;
+		}
+		termbfr[len] = mclex_advance(lexstate);
+		len += 1;
+	}
+	termbfr[len] = '\0';
 
-        return -1;
-    }
+	if (1 == len) {
+		return termbfr[0];
+	}
 
-    mclex_advance(lexstate);
-    CURTKN(lexstate).token_number = symbol;
-    return symbol;
+	for (i64 idx = TK_CONCAT; idx <= TK_NE; idx += 1) {
+		if (0 == strncmp(termbfr, TK2STR(idx), len)) {
+			return idx;
+		}
+	}
+
+	return TK_ERR;
 }
