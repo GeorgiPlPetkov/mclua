@@ -17,21 +17,25 @@ static i64 mclex_lexstring(LexState* lexstate);
 static i64 mclex_set_token(LexState* lexstate);
 static i64 mclex_lexterminals(LexState* lexstate);
 
-i8 mclex_init(LexState* lexstate) {
-	lexstate->token_array.tkns = (Token*) calloc(MAX_TOKENS, sizeof(Token));
-
-	if (NULL == lexstate->token_array.tkns) {
+i8 mclex_init(LexState* lexstate, char* lexmem, u64 lexmemcap) {
+	if (NULL == lexmem) {
 		return -1;
 	}
 
-	lexstate->token_array.cap = MAX_TOKENS;
+	lexstate->token_array.tkns = (Token*) lexmem;
+	lexstate->token_array.cap =
+			(lexmemcap / sizeof(Token)) - lexstate->config->MAX_IDLEN;
 	lexstate->token_array.len = 0;
+
+	lexstate->wordscratch =
+			lexmem + lexstate->token_array.cap * sizeof(Token);
+	lexstate->wordscratch_cap = lexstate->config->MAX_IDLEN;
 
 	return 0;
 }
 
 void mclex_free(LexState* lexstate) {
-	free(lexstate->token_array.tkns);
+	(void) lexstate;
 }
 
 i8 mclex_lexscript_str8(LexState* lexstate, str8* script) {
@@ -172,29 +176,32 @@ static u64 mclex_readoutword(LexState* lexstate, char* buf, u64 ssize) {
 }
 
 static f64 mclex_lexnumber(LexState* lexstate) {
-	char numbfr[MAX_NUMLEN];
-	i64 wordlen = mclex_readoutword(lexstate, numbfr, MAX_NUMLEN);
+	i64 wordlen = mclex_readoutword(lexstate,
+			lexstate->wordscratch,
+			lexstate->wordscratch_cap);
 
-	if (('0' == numbfr[0]) && (wordlen > 2)
-		&& (('x' == numbfr[1]) || ('X' == numbfr[1]))) {
-		return (f64) strtol(numbfr + 2, NULL, 16);
+	if (('0' == lexstate->wordscratch[0]) && (wordlen > 2)
+		&& (('x' == lexstate->wordscratch[1])
+			|| ('X' == lexstate->wordscratch[1]))) {
+		return (f64) strtol(lexstate->wordscratch + 2, NULL, 16);
 	}
 
-	return strtod(numbfr, NULL);
+	return strtod(lexstate->wordscratch, NULL);
 }
 
 static i64 mclex_lexid(LexState* lexstate) {
-	char idbfr[MAX_IDLEN];
-	u64 wordlen = mclex_readoutword(lexstate, idbfr, MAX_IDLEN);
+	u64 wordlen = mclex_readoutword(lexstate,
+			lexstate->wordscratch,
+			lexstate->wordscratch_cap);
 	const char* tkname = NULL;
 
 	for (i64 tokenidx = FIRST_RESERVED; tokenidx <= TK_WHILE; tokenidx += 1) {
-		if (0 == strncmp(idbfr, TK2STR(tokenidx), wordlen)) {
+		if (0 == strncmp(lexstate->wordscratch, TK2STR(tokenidx), wordlen)) {
 			return tokenidx;
 		}
 	}
 
-	tkname = mcstrtbl_intern(lexstate->stringtable, idbfr, wordlen);
+	tkname = mcstrtbl_intern(lexstate->stringtable, lexstate->wordscratch, wordlen);
 	if (NULL == tkname) {
 		return TK_ERR;
 	}
@@ -204,11 +211,11 @@ static i64 mclex_lexid(LexState* lexstate) {
 }
 
 static i64 mclex_lexstring(LexState* lexstate) {
-	char strbfr[MAX_STRLEN];
+	char strbfr[67];
 	i64 idx = 0;
 	char symbol = '\0';
 
-	while ((MAX_STRLEN - 1) > idx) {
+	while ((67 - 1) > idx) {
 		symbol = mclex_peek(lexstate);
 		if ('\0' == symbol) {
 			return TK_ERR;
@@ -233,7 +240,6 @@ static i64 mclex_lexterminals(LexState* lexstate) {
 	u64 len = 0;
 	const char simple_temrs[] = "+-*/%^#&|:;,()[]{}";
 	const char complex_temrs[] = ".=<>~";
-	char termbfr[MAX_TERMLEN];
 	char symbol = mclex_peek(lexstate);
 
 	if ('\0' == symbol) {
@@ -245,22 +251,22 @@ static i64 mclex_lexterminals(LexState* lexstate) {
 		return symbol;
 	}
 
-	while ((MAX_TERMLEN - 1) > len) {
+	while ((lexstate->wordscratch_cap - 1) > len) {
 		symbol = mclex_peek(lexstate);
 		if (NULL == strchr(complex_temrs, symbol)) {
 			break;
 		}
-		termbfr[len] = mclex_advance(lexstate);
+		lexstate->wordscratch[len] = mclex_advance(lexstate);
 		len += 1;
 	}
-	termbfr[len] = '\0';
+	lexstate->wordscratch[len] = '\0';
 
 	if (1 == len) {
-		return termbfr[0];
+		return lexstate->wordscratch[0];
 	}
 
 	for (i64 idx = TK_CONCAT; idx <= TK_NE; idx += 1) {
-		if (0 == strncmp(termbfr, TK2STR(idx), len)) {
+		if (0 == strncmp(lexstate->wordscratch, TK2STR(idx), len)) {
 			return idx;
 		}
 	}

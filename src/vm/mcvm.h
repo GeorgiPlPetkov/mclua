@@ -8,6 +8,7 @@
 
 typedef struct gstate {
     VMConfig config;
+    char* mem;
     StringTable stringtable;
     LexState lexstate;
 } VMState;

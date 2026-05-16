@@ -1,5 +1,6 @@
 #pragma once
 
+#include "mcconfig.h"
 #include "mcstrtbl.h"
 
 #include "mctypes.h"
@@ -53,15 +54,13 @@ typedef struct LexState {
     str8* input;
 
     TokenArray token_array;
+    char* wordscratch;
+    u64 wordscratch_cap;
 
     StringTable* stringtable;
+    VMConfig* config;
 } LexState;
 
-#define MAX_TOKENS   (1024)
-#define MAX_IDLEN    (64)
-#define MAX_NUMLEN   (32)
-#define MAX_TERMLEN  (4)
-#define MAX_STRLEN   (1024)
 #define NUM_RESERVED ((i32) (TK_WHILE - FIRST_RESERVED + 1))
 
 #define TK2IDX(token_num) ((token_num) - (FIRST_RESERVED))
@@ -70,7 +69,7 @@ typedef struct LexState {
 #define CURTKN(lexstate) \
         ((lexstate)->token_array.tkns[(lexstate)->token_array.len])
 
-i8 mclex_init(LexState* lexstate);
+i8 mclex_init(LexState* lexstate, char* lexmem, u64 lexmemcap);
 void mclex_free(LexState* lexstate);
 
 i8 mclex_lexscript_str8(LexState* lexstate, str8* script);

@@ -6,39 +6,58 @@
 
 #include "mcvm.h"
 
-#define MAXFILESIZE (1024)
-#define MAX_VARNAMES (1024)
-#define MAX_VARMEM (MAX_VARNAMES * 32)
-
 i8 mcvm_init(VMState* vm, VMConfig* cfg) {
     i8 initcode = 0;
-    (void) cfg;
 
-    char* strtbl_bfr = (char*) malloc(MAX_VARMEM);
-    if (NULL == strtbl_bfr) {
-        printf("OOMed on the string table oof\n");
+    if (NULL == cfg) {
+        cfg = &vm->config;
+        mcvm_set_default_config(cfg);
+    } else {
+        initcode = mcvm_validate_config(cfg);
+        if (0 != initcode) {
+            printf("invalid config\n");
+            goto VMINITEXIT;
+        }
+    }
+
+    u64 scratch_size = cfg->MAX_IDLEN;
+    u64 lex_size = (cfg->MAX_TOKENS * sizeof(Token)) + scratch_size;
+    u64 strtbl_size = cfg->MAX_VARNAME_POOL_SIZE;
+    u64 total_size = lex_size + strtbl_size;
+
+    char* mem = (char*) malloc(total_size);
+    if (NULL == mem) {
+        printf("OOMed lol\n");
+        initcode = -1;
         goto VMINITEXIT;
     }
-    initcode = mcstrtbl_init(&vm->stringtable,
-            strtbl_bfr,
-            MAX_VARMEM,
-            MAX_VARNAMES);
-    if (0 != initcode) {
-        printf("failed to initialize string table\n");
-        goto VMINITEXIT;
-    }
-    initcode = mclex_init(&vm->lexstate);
+    vm->mem = mem;
+
+    initcode = mclex_init(&vm->lexstate, mem, lex_size);
     if (0 != initcode) {
         printf("failed to initialize lexer\n");
+        goto VMINITEXIT_POSTALLOC;
     }
+    vm->lexstate.config = &vm->config;
     vm->lexstate.stringtable = &vm->stringtable;
 
+    initcode = mcstrtbl_init(&vm->stringtable,
+            mem + lex_size,
+            strtbl_size,
+            cfg->MAX_VARNAME_ENTRIES);
+    if (0 != initcode) {
+        printf("failed to initialize string table\n");
+        goto VMINITEXIT_POSTALLOC;
+    }
+
+VMINITEXIT_POSTALLOC:
+    free(mem);
 VMINITEXIT:
     return initcode;
 }
 
 void mcvm_free(VMState* vm) {
-    mclex_free(&vm->lexstate);
+    free(vm->mem);
 }
 
 i8 mcvm_parsestr8(VMState* vm, str8* str) {
@@ -68,7 +87,7 @@ PARSESTR0EXIT:
 
 i8 mcvm_parsefile(VMState* vm, const char* path) {
     i8 rcode = 0;
-    char bfr[MAXFILESIZE];
+    char bfr[vm->config.MAX_FILE_SIZE];
     str8 file_buffer;
 
     rcode = str8_attach_nt(&file_buffer, bfr);
