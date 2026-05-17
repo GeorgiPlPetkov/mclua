@@ -18,9 +18,10 @@ typedef struct {
     u64 bfr_used;
 } StringTable;
 
-i8 mcstrtbl_init(StringTable* tbl, char* bfr, u64 bfrcap, u32 max_entries);
+i8 mcstrtbl_init(StringTable* tbl, u32 maxvars, char* bfr, u64 bfrcap);
 void mcstrtbl_clear(StringTable* tbl);
 
 char* mcstrtbl_intern(StringTable* tbl, const char* str, u64 len);
 char* mcstrtbl_lookup(StringTable* tbl, const char* str, u64 len);
+
 void mcstrtbl_logstate(StringTable* tbl);

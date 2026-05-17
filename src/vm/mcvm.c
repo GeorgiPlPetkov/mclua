@@ -8,8 +8,13 @@
 
 i8 mcvm_init(VMState* vm, VMConfig* cfg) {
     i8 initcode = 0;
+    char* memstack = NULL;
+    u64 lexmem_size = 0;
+    u64 strtblmem_size = 0;
+    u64 totalmem = 0;
 
     if (NULL == cfg) {
+        printf("no config provided, using default\n");
         cfg = &vm->config;
         mcvm_set_default_config(cfg);
     } else {
@@ -20,47 +25,52 @@ i8 mcvm_init(VMState* vm, VMConfig* cfg) {
         }
     }
 
-    u64 scratch_size = cfg->MAX_IDLEN;
-    u64 lex_size = (cfg->MAX_TOKENS * sizeof(Token)) + scratch_size;
-    u64 strtbl_size = cfg->MAX_VARNAME_POOL_SIZE;
-    u64 total_size = lex_size + strtbl_size;
+    lexmem_size = cfg->MAX_LEX_MEM;
+    strtblmem_size = cfg->MAX_VARNAME_POOL_SIZE;
+    totalmem = lexmem_size + strtblmem_size;
 
-    char* mem = (char*) malloc(total_size);
-    if (NULL == mem) {
+    vm->mem = (char*) calloc(totalmem, 1);
+    if (NULL == vm->mem) {
         printf("OOMed lol\n");
         initcode = -1;
         goto VMINITEXIT;
     }
-    vm->mem = mem;
-
-    initcode = mclex_init(&vm->lexstate, mem, lex_size);
-    if (0 != initcode) {
-        printf("failed to initialize lexer\n");
-        goto VMINITEXIT_POSTALLOC;
-    }
-    vm->lexstate.config = &vm->config;
-    vm->lexstate.stringtable = &vm->stringtable;
+    memstack = vm->mem;
 
     initcode = mcstrtbl_init(&vm->stringtable,
-            mem + lex_size,
-            strtbl_size,
-            cfg->MAX_VARNAME_ENTRIES);
+            cfg->MAX_VARNAME_ENTRIES,
+            memstack,
+            strtblmem_size);
     if (0 != initcode) {
         printf("failed to initialize string table\n");
         goto VMINITEXIT_POSTALLOC;
     }
+    memstack += strtblmem_size;
+
+    vm->lexstate.config = &vm->config;
+    vm->lexstate.stringtable = &vm->stringtable;
+    initcode = mclex_init(&vm->lexstate, memstack, lexmem_size);
+    if (0 != initcode) {
+        printf("failed to initialize lexer\n");
+        goto VMINITEXIT_POSTALLOC;
+    }
+
+VMINITEXIT:
+    memstack = NULL;
+    return initcode;
 
 VMINITEXIT_POSTALLOC:
-    free(mem);
-VMINITEXIT:
+    free(vm->mem);
+    vm->mem = NULL;
     return initcode;
 }
 
 void mcvm_free(VMState* vm) {
     free(vm->mem);
+    vm->mem = NULL;
 }
 
-i8 mcvm_parsestr8(VMState* vm, str8* str) {
+i8 mcvm_parse_str8(VMState* vm, str8* str) {
     i8 rcode = 0;
 
     rcode = mclex_lexscript_str8(&vm->lexstate, str);
@@ -69,7 +79,7 @@ i8 mcvm_parsestr8(VMState* vm, str8* str) {
     return rcode;
 }
 
-i8 mcvm_parsestr0(VMState* vm, const char* str) {
+i8 mcvm_parse_str0(VMState* vm, const char* str) {
     i8 rcode = 0;
     str8 temp_str;
 
@@ -79,7 +89,7 @@ i8 mcvm_parsestr0(VMState* vm, const char* str) {
         goto PARSESTR0EXIT;
     }
 
-    rcode = mcvm_parsestr8(vm, &temp_str);
+    rcode = mcvm_parse_str8(vm, &temp_str);
 
 PARSESTR0EXIT:
     return rcode;
@@ -102,7 +112,7 @@ i8 mcvm_parsefile(VMState* vm, const char* path) {
         goto PARSESCRIPTEXIT;
     }
 
-    rcode = mcvm_parsestr8(vm, &file_buffer);
+    rcode = mcvm_parse_str8(vm, &file_buffer);
 
 PARSESCRIPTEXIT:
     return rcode;

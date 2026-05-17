@@ -31,9 +31,10 @@ static char* tokenstr[] = {
 };
 
 typedef union SemanticInfo {
-    i64  integer;
-    f64  number;
-    str8 string;
+    i64   integer;
+    f64   number;
+    str8* string;
+    char* varname;
 } SemanticInfo;
 
 typedef struct Token {

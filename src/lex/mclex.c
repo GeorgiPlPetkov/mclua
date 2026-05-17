@@ -18,18 +18,30 @@ static i64 mclex_set_token(LexState* lexstate);
 static i64 mclex_lexterminals(LexState* lexstate);
 
 i8 mclex_init(LexState* lexstate, char* lexmem, u64 lexmemcap) {
+	u64 scratch_size = 0;
+	u64 tokens_size = 0;
+
 	if (NULL == lexmem) {
 		return -1;
 	}
 
-	lexstate->token_array.tkns = (Token*) lexmem;
-	lexstate->token_array.cap =
-			(lexmemcap / sizeof(Token)) - lexstate->config->MAX_IDLEN;
-	lexstate->token_array.len = 0;
+	scratch_size = lexstate->config->MAX_IDLEN;
+	tokens_size = lexstate->config->MAX_TOKENS * sizeof(Token);
 
-	lexstate->wordscratch =
-			lexmem + lexstate->token_array.cap * sizeof(Token);
-	lexstate->wordscratch_cap = lexstate->config->MAX_IDLEN;
+	if ((scratch_size + tokens_size) > lexmemcap) {
+		printf("lex: %lu tokens + %lu scratch = %lu, exceeds %lu pool\n",
+				lexstate->config->MAX_TOKENS, scratch_size,
+				scratch_size + tokens_size, lexmemcap);
+		return -1;
+	}
+
+	lexstate->wordscratch_cap = scratch_size;
+	lexstate->wordscratch = lexmem;
+	lexmem += scratch_size;
+
+	lexstate->token_array.tkns = (Token*) lexmem;
+	lexstate->token_array.cap = lexstate->config->MAX_TOKENS;
+	lexstate->token_array.len = 0;
 
 	return 0;
 }
@@ -66,18 +78,20 @@ i8 mclex_lexscript_str8(LexState* lexstate, str8* script) {
 
 void mclex_logtokens(LexState* lstate) {
 	TokenArray* tkn_arr = &lstate->token_array;
-	char smallstr = 0;
 	char* tkn_value = NULL;
+	str8* strtkn = NULL;
 	i64 tkn_num = 0;
 	i64 tkn_idx = 0;
+	char chartkn = 0;
 
+	printf("tokens:\n");
 	for (u64 idx = 0; idx < tkn_arr->len; idx += 1) {
 		tkn_num = tkn_arr->tkns[idx].token_number;
 		tkn_idx = TK2IDX(tkn_num);
 
 		if (FIRST_RESERVED > tkn_num) {
-			tkn_value = &smallstr;
-			smallstr = (char) tkn_num;
+			tkn_value = &chartkn;
+			chartkn = (char) tkn_num;
 		} else if ((tkn_idx >= 0)
 		           && ((u64) tkn_idx < (sizeof(tokenstr) / sizeof(tokenstr[0])))) {
 			tkn_value = (char*) TK2STR(tkn_num);
@@ -86,13 +100,22 @@ void mclex_logtokens(LexState* lstate) {
 		}
 
 		printf("[%lu]: %ld | %s | ", idx, tkn_num, tkn_value);
-
-		if (TK_NUMBER == tkn_num) {
-			printf("%f", tkn_arr->tkns[idx].semantics.number);
-		} else if ((TK_NAME == tkn_num) || (TK_STRING == tkn_num)) {
-			printf("%s", tkn_arr->tkns[idx].semantics.string.content);
+		switch (tkn_num) {
+			case TK_NUMBER:
+				printf("%f", tkn_arr->tkns[idx].semantics.number);
+				break;
+			case TK_NAME:
+				printf("%s", tkn_arr->tkns[idx].semantics.varname);
+				break;
+			case TK_STRING:
+				strtkn = tkn_arr->tkns[idx].semantics.string;
+				if (NULL != strtkn) {
+					printf("%.*s", (int) strtkn->length, strtkn->content);
+				} else {
+					printf("null string");
+				}
+				break;
 		}
-
 		printf("\n");
 	}
 }
@@ -193,7 +216,7 @@ static i64 mclex_lexid(LexState* lexstate) {
 	u64 wordlen = mclex_readoutword(lexstate,
 			lexstate->wordscratch,
 			lexstate->wordscratch_cap);
-	const char* tkname = NULL;
+	char* tkname = NULL;
 
 	for (i64 tokenidx = FIRST_RESERVED; tokenidx <= TK_WHILE; tokenidx += 1) {
 		if (0 == strncmp(lexstate->wordscratch, TK2STR(tokenidx), wordlen)) {
@@ -201,12 +224,14 @@ static i64 mclex_lexid(LexState* lexstate) {
 		}
 	}
 
-	tkname = mcstrtbl_intern(lexstate->stringtable, lexstate->wordscratch, wordlen);
+	tkname = mcstrtbl_intern(lexstate->stringtable,
+			lexstate->wordscratch,
+			wordlen);
 	if (NULL == tkname) {
 		return TK_ERR;
 	}
 
-	str8_attach_nt(&CURTKN(lexstate).semantics.string, tkname);
+	CURTKN(lexstate).semantics.varname = tkname;
 	return TK_NAME;
 }
 

@@ -10,22 +10,19 @@ i8 mcvm_set_default_config(VMConfig* cfg) {
     }
 
     cfg->MAX_MEM = 1024 * 1024;
-    cfg->MAX_RUNTIME_MEM = 1024 * 1024;
+    cfg->MAX_RUNTIME_MEM = 1024;
 
     cfg->MAX_FILE_SIZE = 1024;
-    cfg->MAX_PROGRAM_SIZE = 1024 * 1024;
 
     cfg->MAX_TOKENS = 1024;
-
     cfg->MAX_IDLEN = 64;
     cfg->MAX_NUMLEN = 32;
     cfg->MAX_TERMLEN = 4;
     cfg->MAX_STR_LEN = 1024;
+    cfg->MAX_LEX_MEM = cfg->MAX_TOKENS * TOKEN_SIZE + cfg->MAX_IDLEN;
 
     cfg->MAX_VARNAME_ENTRIES = 1024;
-    cfg->MAX_VARNAME_POOL_SIZE = 1024 * 32;
-
-    cfg->DEBUG_MODE = 0;
+    cfg->MAX_VARNAME_POOL_SIZE = cfg->MAX_VARNAME_ENTRIES * cfg->MAX_IDLEN;
 
     return 0;
 }
@@ -35,8 +32,8 @@ i8 mcvm_validate_config(VMConfig* cfg) {
         return -1;
     }
 
-    if (0 == cfg->MAX_TOKENS) {
-        printf("config: MAX_TOKENS cannot be 0\n");
+    if (cfg->MAX_LEX_MEM <= cfg->MAX_IDLEN) {
+        printf("config: MAX_LEX_MEM must be larger than MAX_IDLEN\n");
         return -1;
     }
 

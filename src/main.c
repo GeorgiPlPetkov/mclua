@@ -18,12 +18,14 @@ static const char* lua_script =
 int main(int argc, const char** argv) {
     int rcode = 0;
     VMState virtman;
-    // VMConfig cfg = {
-    //     .MAX_MEM = 1024 * 1024,
-    //     .MAX_FILE_SIZE = 1024 * 1024
-    // };
-    mcvm_init(&virtman, NULL);
-    printf("[MC] options:\n");
+
+    rcode = mcvm_init(&virtman, NULL);
+    if (0 != rcode) {
+        fprintf(stderr, "[MC] Failed to initialize VM\n");
+        return rcode;
+    }
+
+    printf("[MC] started:\n");
     if (1 > argc) {
         loghelp();
         goto LEAVE;
@@ -40,7 +42,7 @@ int main(int argc, const char** argv) {
             }
         } else if (0 == strncmp(argv[argIdx], "-i", 2)) {
             printf("interactive? More like hardcoded lol\n");
-            mcvm_parsestr0(&virtman, lua_script);
+            mcvm_parse_str0(&virtman, lua_script);
         } else if ((0 == strncmp(argv[argIdx], "-h", 2))
                    || (0 == strncmp(argv[argIdx], "--help", 5))) {
             loghelp();
@@ -53,8 +55,9 @@ int main(int argc, const char** argv) {
     }
 
 LEAVE:
+printf("[MC] ova :3\n");
     mcvm_free(&virtman);
-    printf("ova :3\n");
+printf("[MC] fre :3\n");
 
     return rcode;
 }

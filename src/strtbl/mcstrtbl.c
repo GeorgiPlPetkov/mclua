@@ -7,16 +7,15 @@
 
 static u32 mcstrtbl_hash(const char* str, u64 len);
 
-i8 mcstrtbl_init(StringTable* tbl, char* bfr, u64 bfrcap, u32 max_entries) {
-    u64 entries_size = max_entries * sizeof(strtbl_entry);
-    if (entries_size >= bfrcap) {
+i8 mcstrtbl_init(StringTable* tbl, u32 maxvars, char* bfr, u64 bfrcap) {
+    u64 entries_size = maxvars * sizeof(strtbl_entry);
+    if ((NULL == bfr) || (entries_size >= bfrcap)) {
         return -1;
     }
 
     tbl->entries = (strtbl_entry*) bfr;
-    memset(tbl->entries, 0, entries_size);
 
-    tbl->entry_cap = max_entries;
+    tbl->entry_cap = maxvars;
     tbl->entry_cnt = 0;
 
     tbl->bfr = bfr + entries_size;
@@ -33,7 +32,16 @@ void mcstrtbl_clear(StringTable* tbl) {
 }
 
 char* mcstrtbl_intern(StringTable* tbl, const char* str, u64 len) {
-    char* existing = mcstrtbl_lookup(tbl, str, len);
+    char* existing = NULL;
+    char* dest = NULL;
+    u32 hash = 0;
+    u32 idx = 0;
+
+    if ((NULL == tbl) || (NULL == str) || (len == 0)) {
+        return NULL;
+    }
+
+    existing = mcstrtbl_lookup(tbl, str, len);
     if (NULL != existing) {
         return existing;
     }
@@ -46,13 +54,13 @@ char* mcstrtbl_intern(StringTable* tbl, const char* str, u64 len) {
         return NULL;
     }
 
-    char* dest = tbl->bfr + tbl->bfr_used;
+    dest = tbl->bfr + tbl->bfr_used;
     memcpy(dest, str, len);
     dest[len] = '\0';
     tbl->bfr_used += len + 1;
 
-    u32 hash = mcstrtbl_hash(str, len);
-    u32 idx = hash % tbl->entry_cap;
+    hash = mcstrtbl_hash(str, len);
+    idx = hash % tbl->entry_cap;
 
     while (NULL != tbl->entries[idx].str) {
         idx = (idx + 1) % tbl->entry_cap;
@@ -85,15 +93,17 @@ char* mcstrtbl_lookup(StringTable* tbl, const char* str, u64 len) {
 
 void mcstrtbl_logstate(StringTable* tbl) {
     printf("strtbl: %u/%u entries, %lu/%lu bytes\n",
-           tbl->entry_cnt, tbl->entry_cap, tbl->bfr_used, tbl->bfrcap);
+           tbl->entry_cnt, tbl->entry_cap,
+           tbl->bfr_used, tbl->bfrcap);
 
     for (u32 idx = 0; idx < tbl->entry_cap; idx += 1) {
         if (NULL == tbl->entries[idx].str) {
             continue;
         }
 
-        printf("[%u]: hash=%08x len=%u \"%s\"\n",
+        printf("[%u]: hash=%08x len=%u \"%.*s\"\n",
                idx, tbl->entries[idx].hash,
+               tbl->entries[idx].len,
                tbl->entries[idx].len, tbl->entries[idx].str);
     }
 }

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string.h>
-#include "mctypes.h"
 
 #define MemsetZero(ptr, size) memset((ptr), 0, (size))
 #define MemsetZeroTyped(ptr, typesize)                 \
