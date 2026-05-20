@@ -17,7 +17,7 @@ static i64 mclex_lexstring(LexState* lexstate);
 static i64 mclex_set_token(LexState* lexstate);
 static i64 mclex_lexterminals(LexState* lexstate);
 
-i8 mclex_init(LexState* lexstate, char* lexmem, u64 lexmemcap) {
+i8 mclex_init(LexState* lexstate, byte* lexmem, u64 lexmemcap) {
 	u64 scratch_size = 0;
 	u64 tokens_size = 0;
 
@@ -36,7 +36,7 @@ i8 mclex_init(LexState* lexstate, char* lexmem, u64 lexmemcap) {
 	}
 
 	lexstate->wordscratch_cap = scratch_size;
-	lexstate->wordscratch = lexmem;
+	lexstate->wordscratch = (char*) lexmem;
 	lexmem += scratch_size;
 
 	lexstate->token_array.tkns = (Token*) lexmem;

@@ -5,9 +5,9 @@
 
 #include "mcstrtbl.h"
 
-static u32 mcstrtbl_hash(const char* str, u64 len);
+static u32 mcstrtbl_hash(const char* str, u32 len);
 
-i8 mcstrtbl_init(StringTable* tbl, u32 maxvars, char* bfr, u64 bfrcap) {
+i8 mcstrtbl_init(StringTable* tbl, u32 maxvars, byte* bfr, u64 bfrcap) {
     u64 entries_size = maxvars * sizeof(strtbl_entry);
     if ((NULL == bfr) || (entries_size >= bfrcap)) {
         return -1;
@@ -31,7 +31,7 @@ void mcstrtbl_clear(StringTable* tbl) {
     tbl->bfr_used = 0;
 }
 
-char* mcstrtbl_intern(StringTable* tbl, const char* str, u64 len) {
+char* mcstrtbl_intern(StringTable* tbl, const char* str, u32 len) {
     char* existing = NULL;
     char* dest = NULL;
     u32 hash = 0;
@@ -54,7 +54,7 @@ char* mcstrtbl_intern(StringTable* tbl, const char* str, u64 len) {
         return NULL;
     }
 
-    dest = tbl->bfr + tbl->bfr_used;
+    dest = (char*) tbl->bfr + tbl->bfr_used;
     memcpy(dest, str, len);
     dest[len] = '\0';
     tbl->bfr_used += len + 1;
@@ -67,14 +67,14 @@ char* mcstrtbl_intern(StringTable* tbl, const char* str, u64 len) {
     }
 
     tbl->entries[idx].str = dest;
-    tbl->entries[idx].len = (u32) len;
+    tbl->entries[idx].len = len;
     tbl->entries[idx].hash = hash;
     tbl->entry_cnt += 1;
 
     return dest;
 }
 
-char* mcstrtbl_lookup(StringTable* tbl, const char* str, u64 len) {
+char* mcstrtbl_lookup(StringTable* tbl, const char* str, u32 len) {
     u32 hash = mcstrtbl_hash(str, len);
     u32 idx = hash % tbl->entry_cap;
 
@@ -108,7 +108,7 @@ void mcstrtbl_logstate(StringTable* tbl) {
     }
 }
 
-static u32 mcstrtbl_hash(const char* str, u64 len) {
+static u32 mcstrtbl_hash(const char* str, u32 len) {
     u32 hash = 2166136261u;
     for (u64 idx = 0; idx < len; idx += 1) {
         hash ^= (uchar) str[idx];

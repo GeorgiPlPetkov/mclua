@@ -13,15 +13,15 @@ typedef struct {
     u32 entry_cap;
     u32 entry_cnt;
 
-    char* bfr;
+    byte* bfr;
     u64 bfrcap;
     u64 bfr_used;
 } StringTable;
 
-i8 mcstrtbl_init(StringTable* tbl, u32 maxvars, char* bfr, u64 bfrcap);
+i8 mcstrtbl_init(StringTable* tbl, u32 maxvars, byte* bfr, u64 bfrcap);
 void mcstrtbl_clear(StringTable* tbl);
 
-char* mcstrtbl_intern(StringTable* tbl, const char* str, u64 len);
-char* mcstrtbl_lookup(StringTable* tbl, const char* str, u64 len);
+char* mcstrtbl_intern(StringTable* tbl, const char* str, u32 len);
+char* mcstrtbl_lookup(StringTable* tbl, const char* str, u32 len);
 
 void mcstrtbl_logstate(StringTable* tbl);

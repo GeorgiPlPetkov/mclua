@@ -8,7 +8,7 @@
 
 i8 mcvm_init(VMState* vm, VMConfig* cfg) {
     i8 initcode = 0;
-    char* memstack = NULL;
+    byte* memstack = NULL;
     u64 lexmem_size = 0;
     u64 strtblmem_size = 0;
     u64 totalmem = 0;
@@ -29,7 +29,7 @@ i8 mcvm_init(VMState* vm, VMConfig* cfg) {
     strtblmem_size = cfg->MAX_VARNAME_POOL_SIZE;
     totalmem = lexmem_size + strtblmem_size;
 
-    vm->mem = (char*) calloc(totalmem, 1);
+    vm->mem = (byte*) calloc(totalmem, 1);
     if (NULL == vm->mem) {
         printf("OOMed lol\n");
         initcode = -1;
