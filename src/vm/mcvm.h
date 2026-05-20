@@ -1,6 +1,7 @@
 #pragma once
 
 #include "mcconfig.h"
+#include "mcheap.h"
 #include "mcstrtbl.h"
 #include "mclex.h"
 
@@ -8,7 +9,7 @@
 
 typedef struct gstate {
     VMConfig config;
-    byte* mem;
+    MCHeap heap;
     StringTable stringtable;
     LexState lexstate;
 } VMState;

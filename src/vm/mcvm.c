@@ -8,7 +8,6 @@
 
 i8 mcvm_init(VMState* vm, VMConfig* cfg) {
     i8 initcode = 0;
-    byte* memstack = NULL;
     u64 lexmem_size = 0;
     u64 strtblmem_size = 0;
     u64 totalmem = 0;
@@ -21,7 +20,7 @@ i8 mcvm_init(VMState* vm, VMConfig* cfg) {
         initcode = mcvm_validate_config(cfg);
         if (0 != initcode) {
             printf("invalid config\n");
-            goto VMINITEXIT;
+            goto VMINITEXIT_PREALLOC;
         }
     }
 
@@ -29,45 +28,40 @@ i8 mcvm_init(VMState* vm, VMConfig* cfg) {
     strtblmem_size = cfg->MAX_VARNAME_POOL_SIZE;
     totalmem = lexmem_size + strtblmem_size;
 
-    vm->mem = (byte*) calloc(totalmem, 1);
-    if (NULL == vm->mem) {
-        printf("OOMed lol\n");
+    initcode = mcheap_init(&vm->heap, totalmem);
+    if (0 != initcode) {
+        printf("failed to initialize heap\n");
         initcode = -1;
-        goto VMINITEXIT;
+        goto VMINITEXIT_PREALLOC;
     }
-    memstack = vm->mem;
 
     initcode = mcstrtbl_init(&vm->stringtable,
             cfg->MAX_VARNAME_ENTRIES,
-            memstack,
+            mcheap_reserve(&vm->heap, strtblmem_size),
             strtblmem_size);
     if (0 != initcode) {
         printf("failed to initialize string table\n");
         goto VMINITEXIT_POSTALLOC;
     }
-    memstack += strtblmem_size;
 
     vm->lexstate.config = &vm->config;
     vm->lexstate.stringtable = &vm->stringtable;
-    initcode = mclex_init(&vm->lexstate, memstack, lexmem_size);
+    initcode = mclex_init(&vm->lexstate,
+            mcheap_reserve(&vm->heap, lexmem_size),
+            lexmem_size);
     if (0 != initcode) {
         printf("failed to initialize lexer\n");
         goto VMINITEXIT_POSTALLOC;
     }
 
-VMINITEXIT:
-    memstack = NULL;
-    return initcode;
-
 VMINITEXIT_POSTALLOC:
-    free(vm->mem);
-    vm->mem = NULL;
+    mcheap_free(&vm->heap);
+VMINITEXIT_PREALLOC:
     return initcode;
 }
 
 void mcvm_free(VMState* vm) {
-    free(vm->mem);
-    vm->mem = NULL;
+    mcheap_free(&vm->heap);
 }
 
 i8 mcvm_parse_str8(VMState* vm, str8* str) {
