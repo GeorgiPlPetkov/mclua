@@ -3,6 +3,8 @@
 #include <ctype.h>
 #include <string.h>
 
+#include "mclstr.h"
+
 #include "mctypes.h"
 
 #include "mclex.h"
@@ -79,7 +81,7 @@ i8 mclex_lexscript_str8(LexState* lexstate, str8* script) {
 void mclex_logtokens(LexState* lstate) {
 	TokenArray* tkn_arr = &lstate->token_array;
 	char* tkn_value = NULL;
-	str8* strtkn = NULL;
+	heap_header* strtkn = NULL;
 	i64 tkn_num = 0;
 	i64 tkn_idx = 0;
 	char chartkn = 0;
@@ -110,7 +112,8 @@ void mclex_logtokens(LexState* lstate) {
 			case TK_STRING:
 				strtkn = tkn_arr->tkns[idx].semantics.string;
 				if (NULL != strtkn) {
-					printf("%.*s", (int) strtkn->length, strtkn->content);
+					printf("%.*s", (i32) strtkn->object.string->len,
+							mclstr_getchars(strtkn));
 				} else {
 					printf("null string");
 				}
@@ -135,26 +138,26 @@ static i64 mclex_set_token(LexState* lexstate) {
 	} while (1);
 
 	if (isdigit((uchar) symbol)) {
-		CURTKN(lexstate).token_number = TK_NUMBER;
+		tknnum = TK_NUMBER;
 		CURTKN(lexstate).semantics.number = mclex_lexnumber(lexstate);
-		return TK_NUMBER;
+		goto LEAVE;
 	}
 
 	if (mclex_isid(symbol)) {
 		// on TK_NAME handles string allocation for name
 		tknnum = mclex_lexid(lexstate);
-		CURTKN(lexstate).token_number = tknnum;
-		return tknnum;
+		goto LEAVE;
 	}
 
 	if ('"' == symbol) {
-		// samesies here
+		// samesies here for TK_STRING
+		printf("lexing string, got '\"'\n");
 		tknnum = mclex_lexstring(lexstate);
-		CURTKN(lexstate).token_number = tknnum;
-		return tknnum;
+		goto LEAVE;
 	}
 
 	tknnum = mclex_lexterminals(lexstate);
+LEAVE:
 	CURTKN(lexstate).token_number = tknnum;
 	return tknnum;
 }
@@ -236,28 +239,44 @@ static i64 mclex_lexid(LexState* lexstate) {
 }
 
 static i64 mclex_lexstring(LexState* lexstate) {
-	char strbfr[67];
-	i64 idx = 0;
-	char symbol = '\0';
+	heap_header* newstr = mclstr_alloc(lexstate->config->MIN_STR_LEN,
+			lexstate->heap);
+	char* strbfr = lexstate->wordscratch;
+	u64 idx = 0;
+	char curr = '\0';
+	char prev = '\0';
 
-	while ((67 - 1) > idx) {
-		symbol = mclex_peek(lexstate);
-		if ('\0' == symbol) {
+	if (NULL == newstr) {
+		return TK_ERR;
+	}
+
+	mclex_advance(lexstate);
+	while (newstr->object.string->len < lexstate->config->MAX_STR_LEN) {
+		curr = mclex_peek(lexstate);
+		if ('\0' == curr) {
 			return TK_ERR;
 		}
 
-		if ('"' == symbol) {
-			if ('\\' != strbfr[idx - 1]) {
-				mclex_advance(lexstate);
-				break;
-			}
+		if (('"' == curr) && ('\\' != prev)) {
+			mclex_advance(lexstate);
+			break;
 		}
+
 		strbfr[idx] = mclex_advance(lexstate);
 		idx += 1;
-	}
-	strbfr[idx] = '\0';
+		prev = strbfr[idx - 1];
 
-	// cool allocation gooes here
+		if (idx >= lexstate->wordscratch_cap) {
+			mclstr_append_str0(newstr, strbfr, idx, lexstate->heap);
+			idx = 0;
+		}
+	}
+
+	if (idx > 0) {
+		mclstr_append_str0(newstr, strbfr, idx, lexstate->heap);
+	}
+
+	CURTKN(lexstate).semantics.string = newstr;
 	return TK_STRING;
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "mcconfig.h"
+#include "mcheap.h"
 #include "mcstrtbl.h"
 
 #include "mctypes.h"
@@ -31,10 +32,10 @@ static char* tokenstr[] = {
 };
 
 typedef union SemanticInfo {
-    i64   integer;
-    f64   number;
-    str8* string;
+    i64 integer;
+    f64 number;
     char* varname;
+    heap_header* string;
 } SemanticInfo;
 
 typedef struct Token {
@@ -59,6 +60,7 @@ typedef struct LexState {
     u64 wordscratch_cap;
 
     StringTable* stringtable;
+    MCHeap* heap;
     VMConfig* config;
 } LexState;
 

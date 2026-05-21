@@ -10,7 +10,6 @@ i8 mcvm_init(VMState* vm, VMConfig* cfg) {
     i8 initcode = 0;
     u64 lexmem_size = 0;
     u64 strtblmem_size = 0;
-    u64 totalmem = 0;
 
     if (NULL == cfg) {
         printf("no config provided, using default\n");
@@ -26,9 +25,8 @@ i8 mcvm_init(VMState* vm, VMConfig* cfg) {
 
     lexmem_size = cfg->MAX_LEX_MEM;
     strtblmem_size = cfg->MAX_VARNAME_POOL_SIZE;
-    totalmem = lexmem_size + strtblmem_size;
 
-    initcode = mcheap_init(&vm->heap, totalmem);
+    initcode = mcheap_init(&vm->heap, cfg->MAX_MEM);
     if (0 != initcode) {
         printf("failed to initialize heap\n");
         initcode = -1;
@@ -37,7 +35,7 @@ i8 mcvm_init(VMState* vm, VMConfig* cfg) {
 
     initcode = mcstrtbl_init(&vm->stringtable,
             cfg->MAX_VARNAME_ENTRIES,
-            mcheap_reserve(&vm->heap, strtblmem_size),
+            mcheap_static_reserve(&vm->heap, strtblmem_size),
             strtblmem_size);
     if (0 != initcode) {
         printf("failed to initialize string table\n");
@@ -46,14 +44,16 @@ i8 mcvm_init(VMState* vm, VMConfig* cfg) {
 
     vm->lexstate.config = &vm->config;
     vm->lexstate.stringtable = &vm->stringtable;
+    vm->lexstate.heap = &vm->heap;
     initcode = mclex_init(&vm->lexstate,
-            mcheap_reserve(&vm->heap, lexmem_size),
+            mcheap_static_reserve(&vm->heap, lexmem_size),
             lexmem_size);
     if (0 != initcode) {
         printf("failed to initialize lexer\n");
         goto VMINITEXIT_POSTALLOC;
     }
 
+    return 0;
 VMINITEXIT_POSTALLOC:
     mcheap_free(&vm->heap);
 VMINITEXIT_PREALLOC:

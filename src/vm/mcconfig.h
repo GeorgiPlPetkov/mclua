@@ -6,8 +6,6 @@
 
 typedef struct VMConfig {
     u64 MAX_MEM;
-    u64 MAX_RUNTIME_MEM;
-
     u64 MAX_FILE_SIZE;
 
     u64 MAX_LEX_MEM;
@@ -16,6 +14,7 @@ typedef struct VMConfig {
     u64 MAX_IDLEN;
     u64 MAX_NUMLEN;
     u64 MAX_TERMLEN;
+    u64 MIN_STR_LEN;
     u64 MAX_STR_LEN;
 
     u64 MAX_VARNAME_ENTRIES;

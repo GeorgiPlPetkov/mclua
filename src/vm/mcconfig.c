@@ -10,7 +10,6 @@ i8 mcvm_set_default_config(VMConfig* cfg) {
     }
 
     cfg->MAX_MEM = 1024 * 1024;
-    cfg->MAX_RUNTIME_MEM = 1024;
 
     cfg->MAX_FILE_SIZE = 1024;
 
@@ -18,7 +17,10 @@ i8 mcvm_set_default_config(VMConfig* cfg) {
     cfg->MAX_IDLEN = 64;
     cfg->MAX_NUMLEN = 32;
     cfg->MAX_TERMLEN = 4;
+
+    cfg->MIN_STR_LEN = 64;
     cfg->MAX_STR_LEN = 1024;
+
     cfg->MAX_LEX_MEM = cfg->MAX_TOKENS * TOKEN_SIZE + cfg->MAX_IDLEN;
 
     cfg->MAX_VARNAME_ENTRIES = 1024;
