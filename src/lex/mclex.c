@@ -13,7 +13,7 @@ static char mclex_peek(LexState* lexstate);
 static char mclex_advance(LexState* lexstate);
 static char mclex_isid(char c);
 static u64 mclex_readoutword(LexState* lexstate, char* scratch, u64 ssize);
-static f64 mclex_lexnumber(LexState* lexstate);
+static i64 mclex_lexnumber(LexState* lexstate);
 static i64 mclex_lexid(LexState* lexstate);
 static i64 mclex_lexstring(LexState* lexstate);
 static i64 mclex_set_token(LexState* lexstate);
@@ -103,7 +103,10 @@ void mclex_logtokens(LexState* lstate) {
 
 		printf("[%lu]: %ld | %s | ", idx, tkn_num, tkn_value);
 		switch (tkn_num) {
-			case TK_NUMBER:
+			case TK_INT:
+				printf("%ld", tkn_arr->tkns[idx].semantics.integer);
+				break;
+			case TK_FLT:
 				printf("%f", tkn_arr->tkns[idx].semantics.number);
 				break;
 			case TK_NAME:
@@ -138,20 +141,16 @@ static i64 mclex_set_token(LexState* lexstate) {
 	} while (1);
 
 	if (isdigit((uchar) symbol)) {
-		tknnum = TK_NUMBER;
-		CURTKN(lexstate).semantics.number = mclex_lexnumber(lexstate);
+		tknnum = mclex_lexnumber(lexstate);
 		goto LEAVE;
 	}
 
 	if (mclex_isid(symbol)) {
-		// on TK_NAME handles string allocation for name
 		tknnum = mclex_lexid(lexstate);
 		goto LEAVE;
 	}
 
 	if ('"' == symbol) {
-		// samesies here for TK_STRING
-		printf("lexing string, got '\"'\n");
 		tknnum = mclex_lexstring(lexstate);
 		goto LEAVE;
 	}
@@ -201,18 +200,37 @@ static u64 mclex_readoutword(LexState* lexstate, char* buf, u64 ssize) {
 	return idx;
 }
 
-static f64 mclex_lexnumber(LexState* lexstate) {
-	i64 wordlen = mclex_readoutword(lexstate,
+static i64 mclex_lexnumber(LexState* lexstate) {
+	i64 wordlen = 0;
+	u8 is_float = 0;
+
+	wordlen = mclex_readoutword(lexstate,
 			lexstate->wordscratch,
 			lexstate->wordscratch_cap);
 
 	if (('0' == lexstate->wordscratch[0]) && (wordlen > 2)
 		&& (('x' == lexstate->wordscratch[1])
 			|| ('X' == lexstate->wordscratch[1]))) {
-		return (f64) strtol(lexstate->wordscratch + 2, NULL, 16);
+		CURTKN(lexstate).semantics.integer = strtol(lexstate->wordscratch, NULL, 16);
+		return TK_INT;
 	}
 
-	return strtod(lexstate->wordscratch, NULL);
+	for (i64 i = 0; i < wordlen; i += 1) {
+		if (('.' == lexstate->wordscratch[i])
+			|| ('e' == lexstate->wordscratch[i])
+			|| ('E' == lexstate->wordscratch[i])) {
+			is_float = 1;
+			break;
+		}
+	}
+
+	if (is_float) {
+		CURTKN(lexstate).semantics.number = strtod(lexstate->wordscratch, NULL);
+		return TK_FLT;
+	}
+
+	CURTKN(lexstate).semantics.integer = strtol(lexstate->wordscratch, NULL, 10);
+	return TK_INT;
 }
 
 static i64 mclex_lexid(LexState* lexstate) {
@@ -282,8 +300,8 @@ static i64 mclex_lexstring(LexState* lexstate) {
 
 static i64 mclex_lexterminals(LexState* lexstate) {
 	u64 len = 0;
-	const char simple_temrs[] = "+-*/%^#&|:;,()[]{}";
-	const char complex_temrs[] = ".=<>~";
+	const char simple_temrs[] = "+-*%^#&|:;,()[]{}";
+	const char complex_temrs[] = ".=<>~/";
 	char symbol = mclex_peek(lexstate);
 
 	if ('\0' == symbol) {
@@ -300,6 +318,7 @@ static i64 mclex_lexterminals(LexState* lexstate) {
 		if (NULL == strchr(complex_temrs, symbol)) {
 			break;
 		}
+
 		lexstate->wordscratch[len] = mclex_advance(lexstate);
 		len += 1;
 	}
@@ -309,7 +328,7 @@ static i64 mclex_lexterminals(LexState* lexstate) {
 		return lexstate->wordscratch[0];
 	}
 
-	for (i64 idx = TK_CONCAT; idx <= TK_NE; idx += 1) {
+	for (i64 idx = TK_CONCAT; idx <= TK_SHR; idx += 1) {
 		if (0 == strncmp(lexstate->wordscratch, TK2STR(idx), len)) {
 			return idx;
 		}
