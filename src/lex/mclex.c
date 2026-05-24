@@ -113,7 +113,7 @@ void mclex_logtokens(LexState* lstate) {
 				printf("%s", tkn_arr->tkns[idx].semantics.varname);
 				break;
 			case TK_STRING:
-				strtkn = tkn_arr->tkns[idx].semantics.string;
+				strtkn = tkn_arr->tkns[idx].semantics.heapobj;
 				if (NULL != strtkn) {
 					printf("%.*s", (i32) strtkn->object.string->len,
 							mclstr_getchars(strtkn));
@@ -157,7 +157,7 @@ static i64 mclex_set_token(LexState* lexstate) {
 
 	tknnum = mclex_lexterminals(lexstate);
 LEAVE:
-	CURTKN(lexstate).token_number = tknnum;
+	TOPTKN(lexstate).token_number = tknnum;
 	return tknnum;
 }
 
@@ -211,7 +211,7 @@ static i64 mclex_lexnumber(LexState* lexstate) {
 	if (('0' == lexstate->wordscratch[0]) && (wordlen > 2)
 		&& (('x' == lexstate->wordscratch[1])
 			|| ('X' == lexstate->wordscratch[1]))) {
-		CURTKN(lexstate).semantics.integer = strtol(lexstate->wordscratch, NULL, 16);
+		TOPTKN(lexstate).semantics.integer = strtol(lexstate->wordscratch, NULL, 16);
 		return TK_INT;
 	}
 
@@ -225,11 +225,11 @@ static i64 mclex_lexnumber(LexState* lexstate) {
 	}
 
 	if (is_float) {
-		CURTKN(lexstate).semantics.number = strtod(lexstate->wordscratch, NULL);
+		TOPTKN(lexstate).semantics.number = strtod(lexstate->wordscratch, NULL);
 		return TK_FLT;
 	}
 
-	CURTKN(lexstate).semantics.integer = strtol(lexstate->wordscratch, NULL, 10);
+	TOPTKN(lexstate).semantics.integer = strtol(lexstate->wordscratch, NULL, 10);
 	return TK_INT;
 }
 
@@ -252,7 +252,7 @@ static i64 mclex_lexid(LexState* lexstate) {
 		return TK_ERR;
 	}
 
-	CURTKN(lexstate).semantics.varname = tkname;
+	TOPTKN(lexstate).semantics.varname = tkname;
 	return TK_NAME;
 }
 
@@ -294,7 +294,7 @@ static i64 mclex_lexstring(LexState* lexstate) {
 		mclstr_append_str0(newstr, strbfr, idx, lexstate->heap);
 	}
 
-	CURTKN(lexstate).semantics.string = newstr;
+	TOPTKN(lexstate).semantics.heapobj = newstr;
 	return TK_STRING;
 }
 
