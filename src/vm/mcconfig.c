@@ -20,8 +20,12 @@ i8 mcvm_set_default_config(VMConfig* cfg) {
 
     cfg->MIN_STR_LEN = 64;
     cfg->MAX_STR_LEN = 1024;
+    cfg->MIN_FUNC_LEN = 32;
+    cfg->MAX_FUNC_LEN = 64;
 
-    cfg->MAX_LEX_MEM = cfg->MAX_TOKENS * TOKEN_SIZE + cfg->MAX_IDLEN;
+    cfg->MAX_NEST_DEPTH = 256;
+
+    cfg->MAX_LEX_MEM = cfg->MAX_TOKENS * sizeof(Token) + cfg->MAX_IDLEN;
 
     cfg->MAX_VARNAME_ENTRIES = 1024;
     cfg->MAX_VARNAME_POOL_SIZE = cfg->MAX_VARNAME_ENTRIES * cfg->MAX_IDLEN;

@@ -6,18 +6,21 @@ typedef enum type {
     OBJ_STR  = 0,
     OBJ_TBL  = 1,
     OBJ_USR  = 2,
-    OBJ_FUNC = 3
+    OBJ_FUNC = 3,
+    OBJ_AST  = 4
 } ObjectType;
 
-typedef struct mclstr {
-    u32 len;
-} mclstr;
+struct mclstr;
+struct mclfunc;
+struct mclastnode;
 
 typedef struct heap_header {
     struct heap_header* next;
     union {
-        mclstr* string;
-        byte* rawdata;
+        struct mclstr* string;
+        struct mclfunc* function;
+        struct mclastnode* astnode;
+        byte* data;
     } object;
     u32 objcap;
     ObjectType type;

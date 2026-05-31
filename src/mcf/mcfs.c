@@ -42,6 +42,8 @@ i8 mcfs_loadas_str8(str8* str, const char* path) {
             file
         );
     }
+    str->length = readcnt;
+    str->content[readcnt] = '\0';
 
 FEXIT:
     fclose(file);

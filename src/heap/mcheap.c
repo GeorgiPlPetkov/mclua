@@ -62,7 +62,7 @@ heap_header* mcheap_managed_reserve(MCHeap* heap, u32 cap) {
     heap->managed_cap -= (cap + sizeof(heap_header));
     heap_header* hdr = (heap_header*)(heap->bfr + heap->head_bot);
 
-    hdr->object.rawdata = objptr;
+    hdr->object.data = objptr;
     hdr->objcap = cap;
     heap->hdr_cnt += 1;
 
@@ -87,11 +87,11 @@ i8 mcheap_managed_resize(MCHeap* heap, heap_header* hdr, u32 newlen) {
     oldcap = hdr->objcap;
 
     byte* new_data = heap->bfr + heap->data_top;
-    memcpy(new_data, (byte*) hdr->object.rawdata, oldcap);
+    memcpy(new_data, (byte*) hdr->object.data, oldcap);
     heap->data_top += newlen;
     heap->managed_cap -= (newlen - oldcap);
 
-    hdr->object.rawdata = new_data;
+    hdr->object.data = new_data;
     hdr->objcap = newlen;
 
     return 0;

@@ -88,7 +88,7 @@ void mclex_logtokens(LexState* lstate) {
 	i64 tkn_idx = 0;
 	char chartkn = 0;
 
-	printf("tokens:\n");
+	printf("\nTokens:\n");
 	for (u64 idx = 0; idx < tkn_arr->len; idx += 1) {
 		tkn_num = tkn_arr->tkns[idx].token_number;
 		tkn_idx = TK2IDX(tkn_num);
@@ -97,7 +97,7 @@ void mclex_logtokens(LexState* lstate) {
 			tkn_value = &chartkn;
 			chartkn = (char) tkn_num;
 		} else if ((tkn_idx >= 0)
-		           && ((u64) tkn_idx < (sizeof(tokenstr) / sizeof(tokenstr[0])))) {
+				&& ((u64) tkn_idx < (sizeof(tokenstr) / sizeof(tokenstr[0])))) {
 			tkn_value = (char*) TK2STR(tkn_num);
 		} else {
 			tkn_value = "you shouldn't see this";

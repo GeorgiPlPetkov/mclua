@@ -1,8 +1,7 @@
 #pragma once
 
 #include "mctypes.h"
-
-#define TOKEN_SIZE (16)
+#include "mctoken.h"
 
 typedef struct VMConfig {
     u64 MAX_MEM;
@@ -14,11 +13,16 @@ typedef struct VMConfig {
     u64 MAX_IDLEN;
     u64 MAX_NUMLEN;
     u64 MAX_TERMLEN;
-    u64 MIN_STR_LEN;
-    u64 MAX_STR_LEN;
+
+    u32 MIN_STR_LEN;
+    u32 MAX_STR_LEN;
+    u32 MIN_FUNC_LEN;
+    u32 MAX_FUNC_LEN;
 
     u64 MAX_VARNAME_ENTRIES;
     u64 MAX_VARNAME_POOL_SIZE;
+
+    u32 MAX_NEST_DEPTH;
 } VMConfig;
 
 i8 mcvm_validate_config(VMConfig* cfg);
