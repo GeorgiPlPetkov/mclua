@@ -4,6 +4,7 @@
 #include "mcheap.h"
 #include "mcstrtbl.h"
 #include "mclex.h"
+#include "mcparse.h"
 
 #include "mcstr.h"
 
@@ -12,6 +13,7 @@ typedef struct gstate {
     MCHeap heap;
     StringTable stringtable;
     LexState lexstate;
+    ParseState parsestate;
 } VMState;
 
 i8 mcvm_init(VMState* vm, VMConfig* cfg);

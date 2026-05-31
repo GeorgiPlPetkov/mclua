@@ -42,14 +42,28 @@ i8 mcvm_init(VMState* vm, VMConfig* cfg) {
         goto VMINITEXIT_POSTALLOC;
     }
 
-    vm->lexstate.config = &vm->config;
     vm->lexstate.stringtable = &vm->stringtable;
     vm->lexstate.heap = &vm->heap;
     initcode = mclex_init(&vm->lexstate,
+            &vm->config,
             mcheap_static_reserve(&vm->heap, lexmem_size),
             lexmem_size);
     if (0 != initcode) {
         printf("failed to initialize lexer\n");
+        goto VMINITEXIT_POSTALLOC;
+    }
+
+    u64 partner_size = cfg->MAX_TOKENS * sizeof(i32);
+    i32* partners = (i32*) mcheap_static_reserve(&vm->heap, partner_size);
+
+    if (NULL == partners) {
+        printf("failed to reserve partner array\n");
+        goto VMINITEXIT_POSTALLOC;
+    }
+
+    initcode = mcparse_init(&vm->parsestate, &vm->heap);
+    if (0 != initcode) {
+        printf("failed to initialize parser\n");
         goto VMINITEXIT_POSTALLOC;
     }
 
@@ -69,7 +83,19 @@ i8 mcvm_parse_str8(VMState* vm, str8* str) {
 
     rcode = mclex_lexscript_str8(&vm->lexstate, str);
     mclex_logtokens(&vm->lexstate);
+    if (0 != rcode) {
+        goto LEAVEPARSE;
+    }
 
+    rcode = mcparse_run(&vm->parsestate, &vm->lexstate.token_array);
+    if (0 != rcode) {
+        printf("failed to parse\n");
+        goto LEAVEPARSE;
+    }
+    printf("\nAST:\n");
+    mcparse_log_node(vm->parsestate.root, 0);
+
+LEAVEPARSE:
     return rcode;
 }
 
@@ -92,13 +118,12 @@ PARSESTR0EXIT:
 i8 mcvm_parsefile(VMState* vm, const char* path) {
     i8 rcode = 0;
     char bfr[vm->config.MAX_FILE_SIZE];
-    str8 file_buffer;
 
-    rcode = str8_attach_nt(&file_buffer, bfr);
-    if (0 != rcode) {
-        printf("failed to reserve file buffer\n");
-        goto PARSESCRIPTEXIT;
-    }
+    str8 file_buffer = {
+        .content  = bfr,
+        .length   = 0,
+        .capacity = vm->config.MAX_FILE_SIZE,
+    };
 
     rcode = mcfs_loadas_str8(&file_buffer, path);
     if (0 != rcode) {
