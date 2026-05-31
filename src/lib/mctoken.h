@@ -12,7 +12,7 @@ enum RESERVED_TK {
     TK_RETURN, TK_THEN, TK_TRUE, TK_UNTIL, TK_WHILE, TK_NAME,
     /* long terminal symbols */
     TK_CONCAT, TK_DOTS, TK_EQ, TK_GE, TK_LE, TK_NE,
-    TK_IDIV, TK_SHL, TK_SHR,
+    TK_IDIV, TK_SHL, TK_SHR, TK_DBCOLON,
     TK_INT, TK_FLT, TK_STRING, TK_EOS,
     TK_ERR = 8, // backspace
 };
@@ -24,7 +24,7 @@ static char* tokenstr[] = {
     "return", "then", "true", "until", "while", "*name",
     /* long terminal symbols */
     "..", "...", "==", ">=", "<=", "~=",
-    "//", "<<", ">>",
+    "//", "<<", ">>", "::",
     "*int", "*float", "*string", "<eos>",
     "<lexerr>"
 };

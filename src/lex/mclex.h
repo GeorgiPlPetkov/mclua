@@ -26,7 +26,7 @@ typedef struct LexState {
 #define TOPTKN(lexstate) \
         ((lexstate)->token_array.tkns[(lexstate)->token_array.len])
 
-i8 mclex_init(LexState* lexstate, byte* lexmem, u64 lexmemcap);
+i8 mclex_init(LexState* lexstate, VMConfig* cfg, byte* lexmem, u64 lexmemcap);
 void mclex_free(LexState* lexstate);
 
 i8 mclex_lexscript_str8(LexState* lexstate, str8* script);

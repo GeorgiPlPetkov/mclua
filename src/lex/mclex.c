@@ -19,21 +19,23 @@ static i64 mclex_lexstring(LexState* lexstate);
 static i64 mclex_set_token(LexState* lexstate);
 static i64 mclex_lexterminals(LexState* lexstate);
 
-i8 mclex_init(LexState* lexstate, byte* lexmem, u64 lexmemcap) {
+i8 mclex_init(LexState* lexstate, VMConfig* cfg, byte* lexmem, u64 lexmemcap) {
 	u64 scratch_size = 0;
 	u64 tokens_size = 0;
+	u64 total_size = 0;
 
-	if (NULL == lexmem) {
+	if ((NULL == lexmem) || (NULL == cfg)) {
 		return -1;
 	}
+	lexstate->config = cfg;
 
-	scratch_size = lexstate->config->MAX_IDLEN;
-	tokens_size = lexstate->config->MAX_TOKENS * sizeof(Token);
+	scratch_size = cfg->MAX_IDLEN;
+	tokens_size = cfg->MAX_TOKENS * sizeof(Token);
+	total_size = scratch_size + tokens_size;
 
-	if ((scratch_size + tokens_size) > lexmemcap) {
-		printf("lex: %lu tokens + %lu scratch = %lu, exceeds %lu pool\n",
-				lexstate->config->MAX_TOKENS, scratch_size,
-				scratch_size + tokens_size, lexmemcap);
+	if (total_size > lexmemcap) {
+		printf("lex: %lu total required exceeds %lu pool\n",
+				total_size, lexmemcap);
 		return -1;
 	}
 
@@ -42,7 +44,7 @@ i8 mclex_init(LexState* lexstate, byte* lexmem, u64 lexmemcap) {
 	lexmem += scratch_size;
 
 	lexstate->token_array.tkns = (Token*) lexmem;
-	lexstate->token_array.cap = lexstate->config->MAX_TOKENS;
+	lexstate->token_array.cap = cfg->MAX_TOKENS;
 	lexstate->token_array.len = 0;
 
 	return 0;
@@ -240,7 +242,7 @@ static i64 mclex_lexid(LexState* lexstate) {
 	char* tkname = NULL;
 
 	for (i64 tokenidx = FIRST_RESERVED; tokenidx <= TK_WHILE; tokenidx += 1) {
-		if (0 == strncmp(lexstate->wordscratch, TK2STR(tokenidx), wordlen)) {
+		if (0 == strcmp(lexstate->wordscratch, TK2STR(tokenidx))) {
 			return tokenidx;
 		}
 	}
@@ -300,8 +302,8 @@ static i64 mclex_lexstring(LexState* lexstate) {
 
 static i64 mclex_lexterminals(LexState* lexstate) {
 	u64 len = 0;
-	const char simple_temrs[] = "+-*%^#&|:;,()[]{}";
-	const char complex_temrs[] = ".=<>~/";
+	const char simple_temrs[] = "+-*%^#&|;,()[]{}";
+	const char complex_temrs[] = ".=<>~/:";
 	char symbol = mclex_peek(lexstate);
 
 	if ('\0' == symbol) {
@@ -328,7 +330,7 @@ static i64 mclex_lexterminals(LexState* lexstate) {
 		return lexstate->wordscratch[0];
 	}
 
-	for (i64 idx = TK_CONCAT; idx <= TK_SHR; idx += 1) {
+	for (i64 idx = TK_CONCAT; idx <= TK_DBCOLON; idx += 1) {
 		if (0 == strncmp(lexstate->wordscratch, TK2STR(idx), len)) {
 			return idx;
 		}

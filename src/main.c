@@ -13,7 +13,12 @@ static const char* lua_script =
     "function my_cool_lua_function()\n"
     "    return (x + y)\n"
     "end\n"
-    "print(\"result=\"..my_cool_lua_function())\n";
+    "function lua_funcs_with_args(x, y)\n"
+    "    return (x + y)\n"
+    "end\n"
+    "print(\"result=\"..my_cool_lua_function())\n"
+    "print(\"lua funcs with args: \"..lua_funcs_with_args(x, y))\n"
+    "::heya::";
 
 int main(int argc, const char** argv) {
     int rcode = 0;
