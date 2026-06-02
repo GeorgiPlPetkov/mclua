@@ -18,10 +18,13 @@ static i64 mclex_lexid(LexState* lexstate);
 static i64 mclex_lexstring(LexState* lexstate);
 static i64 mclex_set_token(LexState* lexstate);
 static i64 mclex_lexterminals(LexState* lexstate);
+static void mclex_update_file_input(LexState* lexstate);
+static i8 mclex_lex(LexState* lexstate);
 
 i8 mclex_init(LexState* lexstate, VMConfig* cfg, byte* lexmem, u64 lexmemcap) {
 	u64 scratch_size = 0;
 	u64 tokens_size = 0;
+	u64 input_size = 0;
 	u64 total_size = 0;
 
 	if ((NULL == lexmem) || (NULL == cfg)) {
@@ -31,7 +34,8 @@ i8 mclex_init(LexState* lexstate, VMConfig* cfg, byte* lexmem, u64 lexmemcap) {
 
 	scratch_size = cfg->MAX_IDLEN;
 	tokens_size = cfg->MAX_TOKENS * sizeof(Token);
-	total_size = scratch_size + tokens_size;
+	input_size = cfg->MAX_FILE_CHUNK_SIZE;
+	total_size = scratch_size + tokens_size + input_size;
 
 	if (total_size > lexmemcap) {
 		printf("lex: %lu total required exceeds %lu pool\n",
@@ -46,6 +50,10 @@ i8 mclex_init(LexState* lexstate, VMConfig* cfg, byte* lexmem, u64 lexmemcap) {
 	lexstate->token_array.tkns = (Token*) lexmem;
 	lexstate->token_array.cap = cfg->MAX_TOKENS;
 	lexstate->token_array.len = 0;
+	lexmem += tokens_size;
+
+	lexstate->input = (char*) lexmem;
+	lexstate->input_len = 0;
 
 	return 0;
 }
@@ -55,29 +63,33 @@ void mclex_free(LexState* lexstate) {
 }
 
 i8 mclex_lexscript_str8(LexState* lexstate, str8* script) {
-	i64 tknnum = 0;
-
 	if ((NULL == lexstate) || (NULL == script)) {
 		return -1;
 	}
 
-	lexstate->input = script;
+	lexstate->input_file.fhandle = NULL;
+	lexstate->input = script->content;
+	lexstate->input_len = script->length;
 	lexstate->curr_char_idx = 0;
-	lexstate->linecnt = 0;
 
-	while (lexstate->token_array.len < lexstate->token_array.cap) {
-		tknnum = mclex_set_token(lexstate);
-		if (TK_ERR == tknnum) {
-			return TK_ERR;
-		}
+	return mclex_lex(lexstate);
+}
 
-		lexstate->token_array.len += 1;
-		if (TK_EOS == tknnum) {
-			return 0;
-		}
+i8 mclex_lexscript_file(LexState* lexstate, const char* path) {
+	i8 rcode = 0;
+
+	if (0 != mcfs_openfile(&lexstate->input_file, path, "r")) {
+		printf("lex: failed to open file %s", path);
+		return -1;
 	}
 
-	return -2;
+	mclex_update_file_input(lexstate);
+	rcode = mclex_lex(lexstate);
+
+	fclose(lexstate->input_file.fhandle);
+	lexstate->input_file.fhandle = NULL;
+
+	return rcode;
 }
 
 void mclex_logtokens(LexState* lstate) {
@@ -136,11 +148,8 @@ static i64 mclex_set_token(LexState* lexstate) {
 		if (!isspace((uchar) symbol)) {
 			break;
 		}
-		if ('\n' == symbol) {
-			lexstate->linecnt += 1;
-		}
 		mclex_advance(lexstate);
-	} while (1);
+	} while ('\0' != symbol);
 
 	if (isdigit((uchar) symbol)) {
 		tknnum = mclex_lexnumber(lexstate);
@@ -164,19 +173,30 @@ LEAVE:
 }
 
 static char mclex_peek(LexState* lexstate) {
-	if (lexstate->curr_char_idx >= lexstate->input->length) {
-		return '\0';
+	if (lexstate->curr_char_idx >= lexstate->input_len) {
+		if (NULL != lexstate->input_file.fhandle) {
+			mclex_update_file_input(lexstate);
+		}
+		if (lexstate->curr_char_idx >= lexstate->input_len) {
+			return '\0';
+		}
 	}
 
-	return lexstate->input->content[lexstate->curr_char_idx];
+	return lexstate->input[lexstate->curr_char_idx];
 }
 
 static char mclex_advance(LexState* lexstate) {
-	if (lexstate->curr_char_idx >= lexstate->input->length) {
-		return '\0';
+	if (lexstate->curr_char_idx >= lexstate->input_len) {
+		if (NULL != lexstate->input_file.fhandle) {
+			mclex_update_file_input(lexstate);
+		}
+
+		if (lexstate->curr_char_idx >= lexstate->input_len) {
+			return '\0';
+		}
 	}
 
-	return lexstate->input->content[lexstate->curr_char_idx++];
+	return lexstate->input[lexstate->curr_char_idx++];
 }
 
 static char mclex_isid(char symbol) {
@@ -211,7 +231,7 @@ static i64 mclex_lexnumber(LexState* lexstate) {
 			lexstate->wordscratch_cap);
 
 	if (('0' == lexstate->wordscratch[0]) && (wordlen > 2)
-		&& (('x' == lexstate->wordscratch[1])
+			&& (('x' == lexstate->wordscratch[1])
 			|| ('X' == lexstate->wordscratch[1]))) {
 		TOPTKN(lexstate).semantics.integer = strtol(lexstate->wordscratch, NULL, 16);
 		return TK_INT;
@@ -219,8 +239,8 @@ static i64 mclex_lexnumber(LexState* lexstate) {
 
 	for (i64 i = 0; i < wordlen; i += 1) {
 		if (('.' == lexstate->wordscratch[i])
-			|| ('e' == lexstate->wordscratch[i])
-			|| ('E' == lexstate->wordscratch[i])) {
+				|| ('e' == lexstate->wordscratch[i])
+				|| ('E' == lexstate->wordscratch[i])) {
 			is_float = 1;
 			break;
 		}
@@ -337,4 +357,32 @@ static i64 mclex_lexterminals(LexState* lexstate) {
 	}
 
 	return TK_ERR;
+}
+
+static void mclex_update_file_input(LexState* lexstate) {
+	lexstate->input_len = mcfs_readchunk(&lexstate->input_file,
+			lexstate->input,
+			lexstate->config->MAX_FILE_CHUNK_SIZE,
+			lexstate->config->MAX_FILE_CHUNK_SIZE);
+
+	lexstate->curr_char_idx = 0;
+}
+
+static i8 mclex_lex(LexState* lexstate) {
+	i64 tknnum = 0;
+
+	while (lexstate->token_array.len < lexstate->token_array.cap) {
+		tknnum = mclex_set_token(lexstate);
+
+		if (TK_ERR == tknnum) {
+			return -1;
+		}
+
+		lexstate->token_array.len += 1;
+		if (TK_EOS == tknnum) {
+			return 0;
+		}
+	}
+
+	return -2;
 }

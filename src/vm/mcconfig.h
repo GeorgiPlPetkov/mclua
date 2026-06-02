@@ -5,7 +5,7 @@
 
 typedef struct VMConfig {
     u64 MAX_MEM;
-    u64 MAX_FILE_SIZE;
+    u64 MAX_FILE_CHUNK_SIZE;
 
     u64 MAX_LEX_MEM;
     u64 MAX_TOKENS;

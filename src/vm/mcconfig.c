@@ -11,7 +11,7 @@ i8 mcvm_set_default_config(VMConfig* cfg) {
 
     cfg->MAX_MEM = 1024 * 1024;
 
-    cfg->MAX_FILE_SIZE = 1024;
+    cfg->MAX_FILE_CHUNK_SIZE = 1024;
 
     cfg->MAX_TOKENS = 1024;
     cfg->MAX_IDLEN = 64;
@@ -25,7 +25,8 @@ i8 mcvm_set_default_config(VMConfig* cfg) {
 
     cfg->MAX_NEST_DEPTH = 256;
 
-    cfg->MAX_LEX_MEM = cfg->MAX_TOKENS * sizeof(Token) + cfg->MAX_IDLEN;
+    cfg->MAX_LEX_MEM = cfg->MAX_TOKENS * sizeof(Token)
+            + cfg->MAX_IDLEN + cfg->MAX_FILE_CHUNK_SIZE;
 
     cfg->MAX_VARNAME_ENTRIES = 1024;
     cfg->MAX_VARNAME_POOL_SIZE = cfg->MAX_VARNAME_ENTRIES * cfg->MAX_IDLEN;
