@@ -15,22 +15,11 @@ workspace "MyCoolProject"
    configurations { "Debug", "Release" }
    platforms { "x64" }
 
-project("MyCoolVM")
-   kind("ConsoleApp")
    language("C")
    cdialect("C23")
-
-   targetdir("bin/%{cfg.buildcfg}")
-
-   postbuildcommands {
-      "{COPYDIR} %{wks.location}/res %{cfg.targetdir}"
-   }
-
    toolset("clang")
    linker("LLD")
-
    includedirs { "src/**" }
-   files { "src/**.h", "src/**.c" }
 
    buildoptions {
       "-Wall",
@@ -41,9 +30,6 @@ project("MyCoolVM")
    filter "system:windows"
       defines { "_CRT_SECURE_NO_WARNINGS" }
 
-   filter "system:linux"
-      links { "m" }
-
    filter "configurations:Debug"
       defines { "DEBUG" }
       symbols "On"
@@ -51,5 +37,39 @@ project("MyCoolVM")
    filter "configurations:Release"
       defines { "NDEBUG" }
       buildoptions { "-Werror" }
-
       optimize "On"
+
+project "mclex"
+   kind "StaticLib"
+   targetdir("lib/%{cfg.buildcfg}")
+
+   files { "src/lex/**.h", "src/lex/**.c" }
+
+project "mcparse"
+   kind "StaticLib"
+   targetdir("lib/%{cfg.buildcfg}")
+
+   files { "src/parse/**.h", "src/parse/**.c" }
+
+project "MyCoolVM"
+   kind "ConsoleApp"
+   targetdir("bin/%{cfg.buildcfg}")
+
+   postbuildcommands {
+      "{COPYDIR} %{wks.location}/res %{cfg.targetdir}"
+   }
+
+   files {
+      "src/main.c",
+      "src/vm/**.h",    "src/vm/**.c",
+      "src/mcf/**.h",   "src/mcf/**.c",
+      "src/lib/**.h",   "src/lib/**.c",
+      "src/heap/**.h",  "src/heap/**.c",
+      "src/strtbl/**.h","src/strtbl/**.c",
+   }
+
+   libdirs { "lib/%{cfg.buildcfg}" }
+   links { "mclex", "mcparse" }
+
+   filter "system:linux"
+      links { "m" }
