@@ -9,10 +9,14 @@
 
 #include "mclex.h"
 
+#define WHAT (-2)
+
 static char mclex_peek(LexState* lexstate);
 static char mclex_advance(LexState* lexstate);
 static char mclex_isid(char c);
-static u64 mclex_readoutword(LexState* lexstate, char* scratch, u64 ssize);
+static u64 mclex_readoutword(LexState* lexstate, char* scratch, u64 bfrsize);
+static u64 mclex_readnumber(LexState* lexstate, char* scratch, u64 bfrsize);
+static void mclex_skip_comment(LexState* lexstate);
 static i64 mclex_lexnumber(LexState* lexstate);
 static i64 mclex_lexid(LexState* lexstate);
 static i64 mclex_lexstring(LexState* lexstate);
@@ -143,6 +147,7 @@ void mclex_logtokens(LexState* lstate) {
 static i64 mclex_set_token(LexState* lexstate) {
 	char symbol = '\0';
 	i64 tknnum = TK_ERR;
+
 	do {
 		symbol = mclex_peek(lexstate);
 		if (!isspace((uchar) symbol)) {
@@ -153,21 +158,14 @@ static i64 mclex_set_token(LexState* lexstate) {
 
 	if (isdigit((uchar) symbol)) {
 		tknnum = mclex_lexnumber(lexstate);
-		goto LEAVE;
-	}
-
-	if (mclex_isid(symbol)) {
+	} else if (mclex_isid(symbol)) {
 		tknnum = mclex_lexid(lexstate);
-		goto LEAVE;
-	}
-
-	if ('"' == symbol) {
+	} else if ('"' == symbol) {
 		tknnum = mclex_lexstring(lexstate);
-		goto LEAVE;
+	} else {
+		tknnum = mclex_lexterminals(lexstate);
 	}
 
-	tknnum = mclex_lexterminals(lexstate);
-LEAVE:
 	TOPTKN(lexstate).token_number = tknnum;
 	return tknnum;
 }
@@ -203,30 +201,104 @@ static char mclex_isid(char symbol) {
 	return isalpha((uchar) symbol) || ('_' == symbol);
 }
 
-static u64 mclex_readoutword(LexState* lexstate, char* buf, u64 ssize) {
+static u64 mclex_readoutword(LexState* lexstate, char* bfr, u64 bfrsize) {
 	u64 idx = 0;
 	const char termsyms[] = " .=<>~:;,+-*/%^#&|()[]{}\"\'\t\n\r";
 	char sym = '\0';
 
-	while ((ssize - 1) > idx) {
+	while ((bfrsize - 1) > idx) {
 		sym = mclex_peek(lexstate);
 		if (('\0' == sym) || (NULL != strchr(termsyms, sym))) {
 			break;
 		}
 
-		buf[idx] = mclex_advance(lexstate);
+		bfr[idx] = mclex_advance(lexstate);
 		idx += 1;
 	}
-	buf[idx] = '\0';
+	bfr[idx] = '\0';
 
 	return idx;
+}
+
+static u64 mclex_readnumber(LexState* lexstate, char* bfr, u64 bfrsize) {
+	u64 idx = 0;
+	char sym = '\0';
+	char prev = '\0';
+
+	while ((bfrsize - 1) > idx) {
+		sym = mclex_peek(lexstate);
+		if (isalnum((uchar) sym) || ('.' == sym)) {
+			bfr[idx] = mclex_advance(lexstate);
+			idx += 1;
+			prev = sym;
+			continue;
+		}
+
+		if ((('+' == sym) || ('-' == sym))
+				&& (('e' == prev) || ('E' == prev)
+				|| ('p' == prev) || ('P' == prev))) {
+			bfr[idx] = mclex_advance(lexstate);
+			idx += 1;
+			prev = sym;
+			continue;
+		}
+		break;
+	}
+	bfr[idx] = '\0';
+
+	return idx;
+}
+
+static void mclex_skip_comment(LexState* lexstate) {
+	char sym = '\0';
+	u64 level = 0;
+	u64 closing = 0;
+
+	if ('[' == mclex_peek(lexstate)) {
+		mclex_advance(lexstate);
+
+		while ('=' == mclex_peek(lexstate)) {
+			level += 1;
+			mclex_advance(lexstate);
+		}
+
+		if ('[' == mclex_peek(lexstate)) {
+			mclex_advance(lexstate);
+
+			while ('\0' != (sym = mclex_advance(lexstate))) {
+				if (']' != sym) {
+					continue;
+				}
+
+				closing = 0;
+				while ('=' == mclex_peek(lexstate)) {
+					closing += 1;
+					mclex_advance(lexstate);
+				}
+
+				if ((closing == level) && (']' == mclex_peek(lexstate))) {
+					mclex_advance(lexstate);
+					return;
+				}
+			}
+
+			return;
+		}
+	}
+
+	while ('\0' != (sym = mclex_peek(lexstate))) {
+		if ('\n' == sym) {
+			break;
+		}
+		mclex_advance(lexstate);
+	}
 }
 
 static i64 mclex_lexnumber(LexState* lexstate) {
 	i64 wordlen = 0;
 	u8 is_float = 0;
 
-	wordlen = mclex_readoutword(lexstate,
+	wordlen = mclex_readnumber(lexstate,
 			lexstate->wordscratch,
 			lexstate->wordscratch_cap);
 
@@ -330,6 +402,16 @@ static i64 mclex_lexterminals(LexState* lexstate) {
 		return TK_EOS;
 	}
 
+	if ('-' == symbol) {
+		mclex_advance(lexstate);
+		if ('-' == mclex_peek(lexstate)) {
+			mclex_advance(lexstate);
+			mclex_skip_comment(lexstate);
+			return WHAT;
+		}
+		return '-';
+	}
+
 	if (NULL != strchr(simple_temrs, symbol)) {
 		mclex_advance(lexstate);
 		return symbol;
@@ -347,6 +429,16 @@ static i64 mclex_lexterminals(LexState* lexstate) {
 	lexstate->wordscratch[len] = '\0';
 
 	if (1 == len) {
+		if (('.' == lexstate->wordscratch[0])
+				&& isdigit((uchar) mclex_peek(lexstate))) {
+			len += mclex_readnumber(lexstate, lexstate->wordscratch + len,
+					lexstate->wordscratch_cap - len);
+
+			TOPTKN(lexstate).semantics.number =
+					strtod(lexstate->wordscratch, NULL);
+			return TK_FLT;
+		}
+		
 		return lexstate->wordscratch[0];
 	}
 
@@ -376,6 +468,10 @@ static i8 mclex_lex(LexState* lexstate) {
 
 		if (TK_ERR == tknnum) {
 			return -1;
+		}
+
+		if (WHAT == tknnum) {
+			continue;
 		}
 
 		lexstate->token_array.len += 1;
