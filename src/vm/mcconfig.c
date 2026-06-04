@@ -24,6 +24,7 @@ i8 mcvm_set_default_config(VMConfig* cfg) {
     cfg->MAX_FUNC_LEN = 64;
 
     cfg->MAX_NEST_DEPTH = 256;
+    cfg->MAX_EXT_VISITORS = 8;
 
     cfg->MAX_LEX_MEM = cfg->MAX_TOKENS * sizeof(Token)
             + cfg->MAX_IDLEN + cfg->MAX_FILE_CHUNK_SIZE;
@@ -61,6 +62,16 @@ i8 mcvm_validate_config(VMConfig* cfg) {
 
     if (0 == cfg->MAX_VARNAME_POOL_SIZE) {
         printf("config: MAX_VARNAME_POOL_SIZE cannot be 0\n");
+        return -1;
+    }
+
+    if (0 == cfg->MAX_LOCALS) {
+        printf("config: MAX_LOCALS cannot be 0\n");
+        return -1;
+    }
+
+    if (0 == cfg->MAX_BREAKS) {
+        printf("config: MAX_BREAKS cannot be 0\n");
         return -1;
     }
 

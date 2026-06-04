@@ -23,6 +23,7 @@ typedef struct VMConfig {
     u64 MAX_VARNAME_POOL_SIZE;
 
     u32 MAX_NEST_DEPTH;
+    u32 MAX_EXT_VISITORS;
 } VMConfig;
 
 i8 mcvm_validate_config(VMConfig* cfg);
