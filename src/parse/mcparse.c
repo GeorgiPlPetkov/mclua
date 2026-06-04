@@ -119,6 +119,9 @@ static heap_header* parse_primaryexp(ParseState* pstate) {
 	}
 
 	if ('(' == CURTKN(pstate).token_number) {
+		heap_header* paren = NULL;
+		i64 inner = 0;
+
 		ps_advance(pstate);
 		node = parse_exp(pstate);
 		if (NULL == node) {
@@ -128,6 +131,18 @@ static heap_header* parse_primaryexp(ParseState* pstate) {
 			return NULL;
 		}
 
+		inner = AST_TYPE(node);
+		if ((PN_CALL == inner) || (PN_CALL_METHOD == inner)
+				|| (PN_VARARG == inner)) {
+			paren = mclast_alloc(PN_PAREN, 1, pstate->heap);
+			if (NULL == paren) {
+				return NULL;
+			}
+			if (0 != mclast_push_child(paren, node, pstate->heap)) {
+				return NULL;
+			}
+			return paren;
+		}
 		return node;
 	}
 
@@ -1475,7 +1490,7 @@ void mcparse_log_node(heap_header* node, i32 depth) {
 	}
 	printf("\n");
 
-	for (u32 i = 0; i < AST_NCHILD(node); i++) {
-		mcparse_log_node(AST_CHILD(node, i), depth + 1);
+	for (u32 idx = 0; idx < AST_NCHILD(node); idx++) {
+		mcparse_log_node(AST_CHILD(node, idx), depth + 1);
 	}
 }

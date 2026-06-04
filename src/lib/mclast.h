@@ -11,6 +11,7 @@ typedef enum ParseNodeType {
    PN_FLOAT,
    PN_STRING,
    PN_VARARG,
+   PN_PAREN,
    PN_NAME,
 
    PN_BINOP,

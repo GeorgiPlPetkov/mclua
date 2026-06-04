@@ -105,6 +105,18 @@ u64 mcfs_readchunk(mcfile* file, char* bfr, u64 bfrsize, u64 chunksize) {
     return readcnt;
 }
 
+i8 mcfs_writebytes(mcfile* file, const void* data, u64 len) {
+    if ((NULL == file) || (NULL == file->fhandle) || (NULL == data)) {
+        return -1;
+    }
+
+    if (len != fwrite(data, 1, len, file->fhandle)) {
+        return -1;
+    }
+
+    return 0;
+}
+
 void mcfs_closefile(mcfile* file) {
     fclose(file->fhandle);
     file->fhandle = NULL;
