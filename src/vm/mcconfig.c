@@ -32,6 +32,9 @@ i8 mcvm_set_default_config(VMConfig* cfg) {
     cfg->MAX_VARNAME_ENTRIES = 1024;
     cfg->MAX_VARNAME_POOL_SIZE = cfg->MAX_VARNAME_ENTRIES * cfg->MAX_IDLEN;
 
+    cfg->MAX_LOCALS = 256;
+    cfg->MAX_BREAKS = 64;
+
     return 0;
 }
 

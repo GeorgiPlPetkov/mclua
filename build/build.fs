@@ -1,7 +1,7 @@
 function mcp-build -a config
     set -q config[1]; or set config debug_x64
     premake5 gmake
-    make config=$config MyCoolVM
+    make config=$config mcluac
 end
 
 function mcp-clean

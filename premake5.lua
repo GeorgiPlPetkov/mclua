@@ -15,11 +15,15 @@ workspace "MyCoolProject"
    configurations { "Debug", "Release" }
    platforms { "x64" }
 
+   location(".")
+   objdir("%{wks.location}/obj/%{cfg.buildcfg}")
+
    language("C")
    cdialect("C23")
    toolset("clang")
    linker("LLD")
-   includedirs { "src/**" }
+
+   includedirs { "src/**", "include" }
 
    buildoptions {
       "-Wall",
@@ -41,35 +45,32 @@ workspace "MyCoolProject"
 
 project "mclex"
    kind "StaticLib"
-   targetdir("lib/%{cfg.buildcfg}")
+   targetdir("%{wks.location}/lib/%{cfg.buildcfg}")
 
    files { "src/lex/**.h", "src/lex/**.c" }
 
 project "mcparse"
    kind "StaticLib"
-   targetdir("lib/%{cfg.buildcfg}")
+   targetdir("%{wks.location}/lib/%{cfg.buildcfg}")
 
    files { "src/parse/**.h", "src/parse/**.c" }
 
-project "MyCoolVM"
+project "mcluac"
    kind "ConsoleApp"
-   targetdir("bin/%{cfg.buildcfg}")
-
-   postbuildcommands {
-      "{COPYDIR} %{wks.location}/res %{cfg.targetdir}"
-   }
+   targetdir("%{wks.location}/bin/%{cfg.buildcfg}")
 
    files {
-      "src/main.c",
-      "src/vm/**.h",    "src/vm/**.c",
-      "src/mcf/**.h",   "src/mcf/**.c",
-      "src/lib/**.h",   "src/lib/**.c",
-      "src/heap/**.h",  "src/heap/**.c",
-      "src/strtbl/**.h","src/strtbl/**.c",
+      "src/compile/**.h", "src/compile/**.c",
+      "src/mcf/**.h", "src/mcf/**.c",
+      "src/lib/**.h", "src/lib/**.c",
+      "src/heap/**.h", "src/heap/**.c",
+      "src/strtbl/**.h", "src/strtbl/**.c",
+      "src/vm/mcconfig.h", "src/vm/mcconfig.c",
+      "src/visitors/mcxt.h", "src/visitors/mcxt.c",
    }
 
-   libdirs { "lib/%{cfg.buildcfg}" }
+   libdirs { "%{wks.location}/lib/%{cfg.buildcfg}" }
    links { "mclex", "mcparse" }
 
    filter "system:linux"
-      links { "m" }
+      links { "m", "dl" }

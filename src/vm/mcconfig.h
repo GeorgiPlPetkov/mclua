@@ -24,6 +24,8 @@ typedef struct VMConfig {
 
     u32 MAX_NEST_DEPTH;
     u32 MAX_EXT_VISITORS;
+    u32 MAX_LOCALS;
+    u32 MAX_BREAKS;
 } VMConfig;
 
 i8 mcvm_validate_config(VMConfig* cfg);
