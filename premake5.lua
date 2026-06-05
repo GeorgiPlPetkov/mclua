@@ -55,6 +55,24 @@ project "mcparse"
 
    files { "src/parse/**.h", "src/parse/**.c" }
 
+project "mctbc"
+   kind "SharedLib"
+   targetdir("%{wks.location}/bin/%{cfg.buildcfg}")
+
+   files {
+      "src/visitors/tokens/mctbracketchecker.h",
+      "src/visitors/tokens/mctbracketchecker.c",
+   }
+
+project "mcunreach"
+   kind "SharedLib"
+   targetdir("%{wks.location}/bin/%{cfg.buildcfg}")
+
+   files {
+      "src/visitors/ast/mcunreach.h",
+      "src/visitors/ast/mcunreach.c",
+   }
+
 project "mcluac"
    kind "ConsoleApp"
    targetdir("%{wks.location}/bin/%{cfg.buildcfg}")
