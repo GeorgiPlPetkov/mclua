@@ -9,17 +9,17 @@ i8 mcvm_set_default_config(VMConfig* cfg) {
         return -1;
     }
 
-    cfg->MAX_MEM = 1024 * 1024;
+    cfg->MAX_MEM = 256 * 1024 * 1024;
 
     cfg->MAX_FILE_CHUNK_SIZE = 1024;
 
-    cfg->MAX_TOKENS = 1024;
-    cfg->MAX_IDLEN = 64;
+    cfg->MAX_TOKENS = 16384;
+    cfg->MAX_IDLEN = 128;
     cfg->MAX_NUMLEN = 32;
     cfg->MAX_TERMLEN = 4;
 
     cfg->MIN_STR_LEN = 64;
-    cfg->MAX_STR_LEN = 1024;
+    cfg->MAX_STR_LEN = 16384;
     cfg->MIN_FUNC_LEN = 32;
     cfg->MAX_FUNC_LEN = 64;
 

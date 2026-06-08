@@ -73,6 +73,7 @@ static i8 mccomp_fornum(MCComp* cstate, heap_header* stat);
 static i8 mccomp_forin(MCComp* cstate, heap_header* stat);
 static i8 mccomp_break(MCComp* cstate);
 static i8 mccomp_funcdef(MCComp* cstate, heap_header* stat);
+static i32 mccomp_func_expr(MCComp* cstate, heap_header* node);
 static i8 mccomp_localfunc(MCComp* cstate, heap_header* stat);
 static i8 mccomp_label(MCComp* cstate, heap_header* stat);
 static i8 mccomp_goto(MCComp* cstate, heap_header* stat);
@@ -835,6 +836,8 @@ static i32 mccomp_exp(MCComp* cstate, heap_header* node) {
             return mccomp_call(cstate, node, 1);
         case PN_VARARG:
             return mccomp_vararg(cstate, 1);
+        case PN_FUNC_EXPR:
+            return mccomp_func_expr(cstate, node);
         case PN_PAREN:
 
             return mccomp_exp(cstate, AST_CHILD(node, 0));
@@ -1389,6 +1392,30 @@ static i8 mccomp_localfunc(MCComp* cstate, heap_header* stat) {
 
     mccomp_emit(cstate, CREATE_ABx(OP_CLOSURE, reg, (u32) pidx));
     return 0;
+}
+
+static i32 mccomp_func_expr(MCComp* cstate, heap_header* node) {
+    heap_header* body = AST_CHILD(node, 0);
+    heap_header* proto = NULL;
+    i32 pidx = 0;
+    u8 reg = 0;
+
+    proto = mccomp_proto(cstate, (char*) "anonymous",
+            AST_CHILD(body, 0), AST_CHILD(body, 1), 0);
+    if (NULL == proto) {
+        cstate->error = 1;
+        return -1;
+    }
+
+    pidx = mclfunc_add_proto(cstate->func, proto, cstate->heap);
+    if (pidx < 0) {
+        cstate->error = 1;
+        return -1;
+    }
+
+    reg = mccomp_reserve(cstate);
+    mccomp_emit(cstate, CREATE_ABx(OP_CLOSURE, reg, (u32) pidx));
+    return reg;
 }
 
 static i8 mccomp_label(MCComp* cstate, heap_header* stat) {

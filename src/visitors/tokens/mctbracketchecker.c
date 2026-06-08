@@ -68,7 +68,7 @@ void mctbc_setup(TokenVisitor* visitor, BracketChecker* checker,
 
 static BracketChecker bc_instance;
 static TokenVisitor   tv_instance;
-static i32            partners[1024];
+static i32            partners[16384];
 
 TokenVisitor* mctkv_load(void) {
 	mctbc_setup(&tv_instance, &bc_instance, partners, 256);

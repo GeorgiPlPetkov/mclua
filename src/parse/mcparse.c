@@ -371,6 +371,24 @@ static heap_header* parse_simpleexp(ParseState* pstate) {
 		case TK_DOTS:
 			ps_advance(pstate);
 			return mclast_alloc(PN_VARARG, 0, pstate->heap);
+		case TK_FUNCTION: {
+			heap_header* fexpr = NULL;
+			heap_header* body = NULL;
+
+			ps_advance(pstate);
+			body = parse_funcbody(pstate);
+			if (NULL == body) {
+				return NULL;
+			}
+
+			fexpr = mclast_alloc(PN_FUNC_EXPR, 1, pstate->heap);
+			if (NULL == fexpr) {
+				return NULL;
+			}
+
+			mclast_push_child(fexpr, body, pstate->heap);
+			return fexpr;
+		}
 		default:
 			return parse_suffixedexp(pstate);
 	}
