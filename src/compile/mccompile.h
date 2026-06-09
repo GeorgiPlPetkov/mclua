@@ -5,6 +5,7 @@
 #include "mclfunc.h"
 #include "mcheap.h"
 #include "mcconfig.h"
+#include "mcstrtbl.h"
 
 typedef struct LocalVar {
     char* name;
@@ -15,6 +16,7 @@ typedef struct LocalVar {
 typedef struct MCComp {
     MCHeap* heap;
     VMConfig* config;
+    StringTable* strtbl;
     struct MCComp* parent;      
     heap_header* func;
     LocalVar* locals;
@@ -34,7 +36,7 @@ typedef struct MCComp {
     u8 ngotos;
 } MCComp;
 
-i8 mccomp_init(MCComp* cstate, MCHeap* heap, VMConfig* config);
+i8 mccomp_init(MCComp* cstate, MCHeap* heap, VMConfig* config, StringTable* strtbl);
 heap_header* mccomp_run(MCComp* cstate, heap_header* ast_root);
 
 void mccomp_log(heap_header* func);

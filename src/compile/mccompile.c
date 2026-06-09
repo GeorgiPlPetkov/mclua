@@ -121,7 +121,7 @@ static u8 mccomp_reserve(MCComp* cstate) {
 
 static i32 mccomp_resolve_local(MCComp* cstate, const char* name) {
     for (i32 idx = (i32) cstate->nactive - 1; idx >= 0; idx -= 1) {
-        if (0 == strcmp(cstate->locals[idx].name, name)) {
+        if (cstate->locals[idx].name == name) {
             return cstate->locals[idx].reg;
         }
     }
@@ -130,7 +130,7 @@ static i32 mccomp_resolve_local(MCComp* cstate, const char* name) {
 
 static i8 mccomp_local_is_const(MCComp* cstate, const char* name) {
     for (i32 idx = (i32) cstate->nactive - 1; idx >= 0; idx -= 1) {
-        if (0 == strcmp(cstate->locals[idx].name, name)) {
+        if (cstate->locals[idx].name == name) {
             return (1 == cstate->locals[idx].attrib);
         }
     }
@@ -144,7 +144,7 @@ static i32 mccomp_resolve_upval(MCComp* cstate, const char* name) {
     i32 pup = 0;
 
     for (u8 idx = 0; idx < n; idx += 1) {
-        if (0 == strcmp(ups[idx].name, name)) {
+        if (ups[idx].name == name) {
             return idx;
         }
     }
@@ -1249,9 +1249,12 @@ static i8 mccomp_forin(MCComp* cstate, heap_header* stat) {
     }
 
 
-    for (idx = 0; idx < 4; idx += 1) {
-        if (0 != mccomp_newlocal(cstate, (char*) "(for state)", (u8) (base + idx))) {
-            return -1;
+    {
+        char* statename = mcstrtbl_intern(cstate->strtbl, "(for state)", 11);
+        for (idx = 0; idx < 4; idx += 1) {
+            if (0 != mccomp_newlocal(cstate, statename, (u8) (base + idx))) {
+                return -1;
+            }
         }
     }
     cstate->freereg = (u8) (base + 4);
@@ -1434,7 +1437,7 @@ static i8 mccomp_label(MCComp* cstate, heap_header* stat) {
     cstate->nlabels += 1;
     for (idx = 0; idx < cstate->ngotos; idx += 1) {
         if ((NULL != cstate->gotos[idx].name)
-                && (0 == strcmp(cstate->gotos[idx].name, name))) {
+                && (cstate->gotos[idx].name == name)) {
             mccomp_patch(cstate, cstate->gotos[idx].pc, here);
             cstate->gotos[idx].name = NULL;
         }
@@ -1449,7 +1452,7 @@ static i8 mccomp_goto(MCComp* cstate, heap_header* stat) {
 
     pc = mccomp_emit(cstate, CREATE_sJ(OP_JMP, 0));
     for (idx = 0; idx < cstate->nlabels; idx += 1) {
-        if (0 == strcmp(cstate->labels[idx].name, name)) {
+        if (cstate->labels[idx].name == name) {
             mccomp_patch(cstate, pc, cstate->labels[idx].pc);
             return 0;
         }
@@ -1550,16 +1553,20 @@ static heap_header* mccomp_body(MCComp* cstate, char* name,
     fn->name = name;
     fn->is_vararg = (u8) (0 != AST_VAL(arglist).integer);
 
-    if (NULL == cstate->parent) {
-        mclfunc_add_upval(cstate->func, (char*) "_ENV", 1, 0, cstate->heap);
-    } else {
-        mclfunc_add_upval(cstate->func, (char*) "_ENV", 0, 0, cstate->heap);
+    {
+        char* envname = mcstrtbl_intern(cstate->strtbl, "_ENV", 4);
+        if (NULL == cstate->parent) {
+            mclfunc_add_upval(cstate->func, envname, 1, 0, cstate->heap);
+        } else {
+            mclfunc_add_upval(cstate->func, envname, 0, 0, cstate->heap);
+        }
     }
 
     cstate->nactive = 0;
     cstate->freereg = 0;
     if (is_method) {
-        if (0 != mccomp_newlocal(cstate, (char*) "self", 0)) {
+        if (0 != mccomp_newlocal(cstate,
+                mcstrtbl_intern(cstate->strtbl, "self", 4), 0)) {
             return NULL;
         }
     }
@@ -1603,18 +1610,18 @@ static heap_header* mccomp_proto(MCComp* parent, char* name,
         heap_header* arglist, heap_header* block, u8 is_method) {
     MCComp sub;
 
-    if (0 != mccomp_init(&sub, parent->heap, parent->config)) {
+    if (0 != mccomp_init(&sub, parent->heap, parent->config, parent->strtbl)) {
         return NULL;
     }
     sub.parent = parent;
     return mccomp_body(&sub, name, arglist, block, is_method);
 }
 
-i8 mccomp_init(MCComp* cstate, MCHeap* heap, VMConfig* config) {
+i8 mccomp_init(MCComp* cstate, MCHeap* heap, VMConfig* config, StringTable* strtbl) {
     LocalVar* locals = NULL;
     u32* breaks = NULL;
 
-    if ((NULL == cstate) || (NULL == heap) || (NULL == config)) {
+    if ((NULL == cstate) || (NULL == heap) || (NULL == config) || (NULL == strtbl)) {
         return -1;
     }
 
@@ -1628,6 +1635,7 @@ i8 mccomp_init(MCComp* cstate, MCHeap* heap, VMConfig* config) {
 
     cstate->heap = heap;
     cstate->config = config;
+    cstate->strtbl = strtbl;
     cstate->parent = NULL;
     cstate->func = NULL;
     cstate->locals = locals;

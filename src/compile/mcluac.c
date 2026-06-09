@@ -362,7 +362,7 @@ static i8 luac_init(MCLuac* mc) {
         goto INITFAIL;
     }
 
-    rcode = mccomp_init(&mc->compilestate, &mc->heap, cfg);
+    rcode = mccomp_init(&mc->compilestate, &mc->heap, cfg, &mc->stringtable);
     if (0 != rcode) {
         printf("[mcluac] failed to initialize compiler\n");
         goto INITFAIL;
