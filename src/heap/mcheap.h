@@ -14,8 +14,8 @@ struct mclstr;
 struct mclfunc;
 struct mclastnode;
 
-typedef struct heap_header {
-    struct heap_header* next;
+typedef struct HeapHeader {
+    struct HeapHeader* next;
     union {
         struct mclstr* string;
         struct mclfunc* function;
@@ -24,7 +24,7 @@ typedef struct heap_header {
     } object;
     u32 objcap;
     ObjectType type;
-} heap_header;
+} HeapHeader;
 
 typedef struct mcheap {
     u8* bfr;
@@ -32,7 +32,7 @@ typedef struct mcheap {
     u64 managed_cap;
     u64 data_top; /* next free byte from front */
     u64 head_bot;  /* first header byte from back */
-    heap_header* header_root;
+    HeapHeader* header_root;
     u32 hdr_cnt;
 } MCHeap;
 
@@ -41,7 +41,7 @@ void mcheap_free(MCHeap* heap);
 
 byte* mcheap_static_reserve(MCHeap* heap, u64 len);
 
-heap_header* mcheap_managed_reserve(MCHeap* heap, u32 cap);
-i8 mcheap_managed_resize(MCHeap* heap, heap_header* hdr, u32 newlen);
+HeapHeader* mcheap_managed_reserve(MCHeap* heap, u32 cap);
+i8 mcheap_managed_resize(MCHeap* heap, HeapHeader* hdr, u32 newlen);
 
 void mcheap_logstate(MCHeap* heap);

@@ -5,9 +5,9 @@
 #include "mclast.h"
 #include "mcheap.h"
 
-heap_header* mclast_alloc(ParseNodeType type, u32 child_cap, MCHeap* heap) {
-    heap_header* hdr = mcheap_managed_reserve(heap,
-            sizeof(mclastnode) + (child_cap * sizeof(heap_header*)));
+HeapHeader* mclast_alloc(ParseNodeType type, u32 child_cap, MCHeap* heap) {
+    HeapHeader* hdr = mcheap_managed_reserve(heap,
+            sizeof(mclastnode) + (child_cap * sizeof(HeapHeader*)));
     if (NULL == hdr) {
         return NULL;
     }
@@ -20,20 +20,20 @@ heap_header* mclast_alloc(ParseNodeType type, u32 child_cap, MCHeap* heap) {
     return hdr;
 }
 
-heap_header** mclast_children(heap_header* node) {
-    return (heap_header**)((byte*) node->object.astnode + sizeof(mclastnode));
+HeapHeader** mclast_children(HeapHeader* node) {
+    return (HeapHeader**)((byte*) node->object.astnode + sizeof(mclastnode));
 }
 
-i8 mclast_push_child(heap_header* parent, heap_header* child, MCHeap* heap) {
+i8 mclast_push_child(HeapHeader* parent, HeapHeader* child, MCHeap* heap) {
     u32 cap = 0;
     u32 newcap = 0;
     u32 reqsize = 0;
-    heap_header** children = NULL;
+    HeapHeader** children = NULL;
 
     cap = AST_CHILD_CAP(parent);
     if (parent->object.astnode->child_count >= cap) {
         newcap = (0 == cap) ? 4 : (cap * 2);
-        reqsize = sizeof(mclastnode) + (newcap * sizeof(heap_header*));
+        reqsize = sizeof(mclastnode) + (newcap * sizeof(HeapHeader*));
         if (0 != mcheap_managed_resize(heap, parent, reqsize)) {
             return -1;
         }

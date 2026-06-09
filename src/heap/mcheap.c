@@ -47,20 +47,20 @@ byte* mcheap_static_reserve(MCHeap* heap, u64 len) {
     return data;
 }
 
-heap_header* mcheap_managed_reserve(MCHeap* heap, u32 cap) {
+HeapHeader* mcheap_managed_reserve(MCHeap* heap, u32 cap) {
     if (NULL == heap) {
         return NULL;
     }
 
-    if ((heap->data_top + cap + sizeof(heap_header)) > heap->head_bot) {
+    if ((heap->data_top + cap + sizeof(HeapHeader)) > heap->head_bot) {
         return NULL;
     }
 
     byte* objptr = heap->bfr + heap->data_top;
     heap->data_top += cap;
-    heap->head_bot -= sizeof(heap_header);
-    heap->managed_cap -= (cap + sizeof(heap_header));
-    heap_header* hdr = (heap_header*)(heap->bfr + heap->head_bot);
+    heap->head_bot -= sizeof(HeapHeader);
+    heap->managed_cap -= (cap + sizeof(HeapHeader));
+    HeapHeader* hdr = (HeapHeader*)(heap->bfr + heap->head_bot);
 
     hdr->object.data = objptr;
     hdr->objcap = cap;
@@ -69,7 +69,7 @@ heap_header* mcheap_managed_reserve(MCHeap* heap, u32 cap) {
     return hdr;
 }
 
-i8 mcheap_managed_resize(MCHeap* heap, heap_header* hdr, u32 newlen) {
+i8 mcheap_managed_resize(MCHeap* heap, HeapHeader* hdr, u32 newlen) {
     u32 oldcap = 0;
 
     if ((NULL == heap) || (NULL == hdr)) {
@@ -104,7 +104,7 @@ void mcheap_logstate(MCHeap* heap) {
            (heap->bfrcap - heap->head_bot), heap->bfrcap,
            heap->head_bot - heap->data_top);
 
-    heap_header* cur = heap->header_root;
+    HeapHeader* cur = heap->header_root;
     u32 idx = 0;
     while (NULL != cur) {
         printf("[%u]: cap=%u\n", idx, cur->objcap);

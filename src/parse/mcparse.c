@@ -6,25 +6,25 @@
 
 #include "mcparse.h"
 
-static heap_header* parse_block(ParseState* pstate);
-static heap_header* parse_stat(ParseState* pstate);
-static heap_header* parse_retstat(ParseState* pstate);
-static heap_header* parse_exp(ParseState* pstate);
-static heap_header* parse_subexp(ParseState* pstate, u8 min_prec);
-static heap_header* parse_simpleexp(ParseState* pstate);
-static heap_header* parse_suffixedexp(ParseState* pstate);
-static heap_header* parse_primaryexp(ParseState* pstate);
-static heap_header* parse_tableconstructor(ParseState* pstate);
-static heap_header* parse_funcbody(ParseState* pstate);
-static heap_header* parse_function(ParseState* pstate, u8 is_main);
-static i8 parse_funcname_into(ParseState* pstate, heap_header* name);
-static i8 parse_arglist(ParseState* pstate, heap_header* arglist);
-static heap_header* parse_explist(ParseState* pstate);
-static heap_header* parse_args(ParseState* pstate);
-static heap_header* parse_attname(ParseState* pstate);
-static heap_header* mcparse_parseroot(ParseState* pstate, TokenArray* tokens);
+static HeapHeader* parse_block(ParseState* pstate);
+static HeapHeader* parse_stat(ParseState* pstate);
+static HeapHeader* parse_retstat(ParseState* pstate);
+static HeapHeader* parse_exp(ParseState* pstate);
+static HeapHeader* parse_subexp(ParseState* pstate, u8 min_prec);
+static HeapHeader* parse_simpleexp(ParseState* pstate);
+static HeapHeader* parse_suffixedexp(ParseState* pstate);
+static HeapHeader* parse_primaryexp(ParseState* pstate);
+static HeapHeader* parse_tableconstructor(ParseState* pstate);
+static HeapHeader* parse_funcbody(ParseState* pstate);
+static HeapHeader* parse_function(ParseState* pstate, u8 is_main);
+static i8 parse_funcname_into(ParseState* pstate, HeapHeader* name);
+static i8 parse_arglist(ParseState* pstate, HeapHeader* arglist);
+static HeapHeader* parse_explist(ParseState* pstate);
+static HeapHeader* parse_args(ParseState* pstate);
+static HeapHeader* parse_attname(ParseState* pstate);
+static HeapHeader* mcparse_parseroot(ParseState* pstate, TokenArray* tokens);
 
-static i8 drain_children(ParseState* pstate, heap_header* dst, heap_header* src) {
+static i8 drain_children(ParseState* pstate, HeapHeader* dst, HeapHeader* src) {
 	u32 count = AST_NCHILD(src);
 	for (u32 cidx = 0; cidx < count; cidx += 1) {
 		if (0 != mclast_push_child(dst, AST_CHILD(src, cidx), pstate->heap)) {
@@ -103,8 +103,8 @@ static i8 is_unop(i64 tk) {
 	return ('-' == tk) || (TK_NOT == tk) || ('#' == tk) || ('~' == tk);
 }
 
-static heap_header* parse_primaryexp(ParseState* pstate) {
-	heap_header* node = NULL;
+static HeapHeader* parse_primaryexp(ParseState* pstate) {
+	HeapHeader* node = NULL;
 	Token* tkn = NULL;
 
 	if (TK_NAME == CURTKN(pstate).token_number) {
@@ -119,7 +119,7 @@ static heap_header* parse_primaryexp(ParseState* pstate) {
 	}
 
 	if ('(' == CURTKN(pstate).token_number) {
-		heap_header* paren = NULL;
+		HeapHeader* paren = NULL;
 		i64 inner = 0;
 
 		ps_advance(pstate);
@@ -152,11 +152,11 @@ static heap_header* parse_primaryexp(ParseState* pstate) {
 	return NULL;
 }
 
-static heap_header* parse_args(ParseState* pstate) {
-	heap_header* args = NULL;
-	heap_header* elist = NULL;
-	heap_header* tbl = NULL;
-	heap_header* strnode = NULL;
+static HeapHeader* parse_args(ParseState* pstate) {
+	HeapHeader* args = NULL;
+	HeapHeader* elist = NULL;
+	HeapHeader* tbl = NULL;
+	HeapHeader* strnode = NULL;
 	Token* tk = NULL;
 
 	args = mclast_alloc(PN_EXPLIST, 4, pstate->heap);
@@ -210,13 +210,13 @@ static heap_header* parse_args(ParseState* pstate) {
 	return NULL;
 }
 
-static heap_header* parse_suffixedexp(ParseState* pstate) {
-	heap_header* expr = NULL;
-	heap_header* field = NULL;
-	heap_header* key = NULL;
-	heap_header* idx = NULL;
-	heap_header* raw_args = NULL;
-	heap_header* call = NULL;
+static HeapHeader* parse_suffixedexp(ParseState* pstate) {
+	HeapHeader* expr = NULL;
+	HeapHeader* field = NULL;
+	HeapHeader* key = NULL;
+	HeapHeader* idx = NULL;
+	HeapHeader* raw_args = NULL;
+	HeapHeader* call = NULL;
 	Token* name_tok = NULL;
 
 	expr = parse_primaryexp(pstate);
@@ -323,8 +323,8 @@ static heap_header* parse_suffixedexp(ParseState* pstate) {
 	return expr;
 }
 
-static heap_header* parse_simpleexp(ParseState* pstate) {
-	heap_header* node = NULL;
+static HeapHeader* parse_simpleexp(ParseState* pstate) {
+	HeapHeader* node = NULL;
 	Token* tk = NULL;
 
 	if ('{' == CURTKN(pstate).token_number) {
@@ -372,8 +372,8 @@ static heap_header* parse_simpleexp(ParseState* pstate) {
 			ps_advance(pstate);
 			return mclast_alloc(PN_VARARG, 0, pstate->heap);
 		case TK_FUNCTION: {
-			heap_header* fexpr = NULL;
-			heap_header* body = NULL;
+			HeapHeader* fexpr = NULL;
+			HeapHeader* body = NULL;
 
 			ps_advance(pstate);
 			body = parse_funcbody(pstate);
@@ -394,11 +394,11 @@ static heap_header* parse_simpleexp(ParseState* pstate) {
 	}
 }
 
-static heap_header* parse_subexp(ParseState* pstate, u8 min_prec) {
-	heap_header* lefthand_expr = NULL;
-	heap_header* righthand_expr = NULL;
-	heap_header* operand = NULL;
-	heap_header* binop = NULL;
+static HeapHeader* parse_subexp(ParseState* pstate, u8 min_prec) {
+	HeapHeader* lefthand_expr = NULL;
+	HeapHeader* righthand_expr = NULL;
+	HeapHeader* operand = NULL;
+	HeapHeader* binop = NULL;
 	BinOpPrio prio = {0, 0};
 	i64 tknum = CURTKN(pstate).token_number;
 
@@ -448,13 +448,13 @@ static heap_header* parse_subexp(ParseState* pstate, u8 min_prec) {
 	return lefthand_expr;
 }
 
-static heap_header* parse_exp(ParseState* pstate) {
+static HeapHeader* parse_exp(ParseState* pstate) {
 	return parse_subexp(pstate, 0);
 }
 
-static heap_header* parse_explist(ParseState* pstate) {
-	heap_header* list = NULL;
-	heap_header* exp = NULL;
+static HeapHeader* parse_explist(ParseState* pstate) {
+	HeapHeader* list = NULL;
+	HeapHeader* exp = NULL;
 
 	list = mclast_alloc(PN_EXPLIST, 4, pstate->heap);
 	if (NULL == list) {
@@ -483,11 +483,11 @@ static heap_header* parse_explist(ParseState* pstate) {
 	return list;
 }
 
-static heap_header* parse_tableconstructor(ParseState* pstate) {
-	heap_header* tbl = NULL;
-	heap_header* field = NULL;
-	heap_header* key = NULL;
-	heap_header* val = NULL;
+static HeapHeader* parse_tableconstructor(ParseState* pstate) {
+	HeapHeader* tbl = NULL;
+	HeapHeader* field = NULL;
+	HeapHeader* key = NULL;
+	HeapHeader* val = NULL;
 	Token* name_tok = NULL;
 	u64 saved_pos = 0;
 
@@ -590,9 +590,9 @@ static heap_header* parse_tableconstructor(ParseState* pstate) {
 	return tbl;
 }
 
-static i8 parse_arglist(ParseState* pstate, heap_header* arglist) {
+static i8 parse_arglist(ParseState* pstate, HeapHeader* arglist) {
 	Token* name_tok = NULL;
-	heap_header* currname = NULL;
+	HeapHeader* currname = NULL;
 
 	if (')' == CURTKN(pstate).token_number) {
 		goto CLEANARGLIST;
@@ -635,10 +635,10 @@ CLEANARGLIST:
 	return 0;
 }
 
-static heap_header* parse_funcbody(ParseState* pstate) {
-	heap_header* body = NULL;
-	heap_header* pl = NULL;
-	heap_header* blk = NULL;
+static HeapHeader* parse_funcbody(ParseState* pstate) {
+	HeapHeader* body = NULL;
+	HeapHeader* pl = NULL;
+	HeapHeader* blk = NULL;
 
 	body = mclast_alloc(PN_FUNCBODY, 2, pstate->heap);
 	if (NULL == body) {
@@ -677,9 +677,9 @@ static heap_header* parse_funcbody(ParseState* pstate) {
 	return body;
 }
 
-static i8 parse_funcname_into(ParseState* pstate, heap_header* name) {
+static i8 parse_funcname_into(ParseState* pstate, HeapHeader* name) {
 	Token* tok = NULL;
-	heap_header* part = NULL;
+	HeapHeader* part = NULL;
 
 	tok = ps_expect(pstate, TK_NAME);
 	if (NULL == tok) {
@@ -726,11 +726,11 @@ static i8 parse_funcname_into(ParseState* pstate, heap_header* name) {
 	return 0;
 }
 
-static heap_header* parse_attname(ParseState* pstate) {
+static HeapHeader* parse_attname(ParseState* pstate) {
 	Token* name_tok = NULL;
 	Token* attr_tok = NULL;
-	heap_header* an = NULL;
-	heap_header* attr = NULL;
+	HeapHeader* an = NULL;
+	HeapHeader* attr = NULL;
 
 	name_tok = ps_expect(pstate, TK_NAME);
 	if (NULL == name_tok) {
@@ -765,9 +765,9 @@ static heap_header* parse_attname(ParseState* pstate) {
 	return an;
 }
 
-static heap_header* parse_retstat(ParseState* pstate) {
-	heap_header* ret = NULL;
-	heap_header* el = NULL;
+static HeapHeader* parse_retstat(ParseState* pstate) {
+	HeapHeader* ret = NULL;
+	HeapHeader* el = NULL;
 
 	ret = mclast_alloc(PN_RETURN, 4, pstate->heap);
 	if (NULL == ret) {
@@ -791,15 +791,15 @@ static heap_header* parse_retstat(ParseState* pstate) {
 	return ret;
 }
 
-static heap_header* parse_if(ParseState* pstate) {
-	heap_header* stat = NULL;
-	heap_header* cond = NULL;
-	heap_header* blk = NULL;
-	heap_header* ei_cond = NULL;
-	heap_header* ei_blk = NULL;
-	heap_header* elseif = NULL;
-	heap_header* else_blk = NULL;
-	heap_header* else_node = NULL;
+static HeapHeader* parse_if(ParseState* pstate) {
+	HeapHeader* stat = NULL;
+	HeapHeader* cond = NULL;
+	HeapHeader* blk = NULL;
+	HeapHeader* ei_cond = NULL;
+	HeapHeader* ei_blk = NULL;
+	HeapHeader* elseif = NULL;
+	HeapHeader* else_blk = NULL;
+	HeapHeader* else_node = NULL;
 
 	ps_advance(pstate);
 
@@ -884,10 +884,10 @@ static heap_header* parse_if(ParseState* pstate) {
 	return stat;
 }
 
-static heap_header* parse_while(ParseState* pstate) {
-	heap_header* stat = NULL;
-	heap_header* cond = NULL;
-	heap_header* blk = NULL;
+static HeapHeader* parse_while(ParseState* pstate) {
+	HeapHeader* stat = NULL;
+	HeapHeader* cond = NULL;
+	HeapHeader* blk = NULL;
 
 	ps_advance(pstate);
 
@@ -920,9 +920,9 @@ static heap_header* parse_while(ParseState* pstate) {
 	return stat;
 }
 
-static heap_header* parse_do(ParseState* pstate) {
-	heap_header* stat = NULL;
-	heap_header* blk = NULL;
+static HeapHeader* parse_do(ParseState* pstate) {
+	HeapHeader* stat = NULL;
+	HeapHeader* blk = NULL;
 
 	ps_advance(pstate);
 
@@ -944,14 +944,14 @@ static heap_header* parse_do(ParseState* pstate) {
 	return stat;
 }
 
-static heap_header* parse_for(ParseState* pstate) {
-	heap_header* stat = NULL;
-	heap_header* start = NULL;
-	heap_header* limit = NULL;
-	heap_header* step = NULL;
-	heap_header* blk = NULL;
-	heap_header* nm = NULL;
-	heap_header* el = NULL;
+static HeapHeader* parse_for(ParseState* pstate) {
+	HeapHeader* stat = NULL;
+	HeapHeader* start = NULL;
+	HeapHeader* limit = NULL;
+	HeapHeader* step = NULL;
+	HeapHeader* blk = NULL;
+	HeapHeader* nm = NULL;
+	HeapHeader* el = NULL;
 	Token* first_name = NULL;
 	Token* n = NULL;
 
@@ -1079,10 +1079,10 @@ static heap_header* parse_for(ParseState* pstate) {
 	}
 }
 
-static heap_header* parse_repeat(ParseState* pstate) {
-	heap_header* stat = NULL;
-	heap_header* blk = NULL;
-	heap_header* cond = NULL;
+static HeapHeader* parse_repeat(ParseState* pstate) {
+	HeapHeader* stat = NULL;
+	HeapHeader* blk = NULL;
+	HeapHeader* cond = NULL;
 
 	ps_advance(pstate);
 
@@ -1110,11 +1110,11 @@ static heap_header* parse_repeat(ParseState* pstate) {
 	return stat;
 }
 
-static heap_header* parse_local(ParseState* pstate) {
-	heap_header* stat = NULL;
-	heap_header* body = NULL;
-	heap_header* an = NULL;
-	heap_header* el = NULL;
+static HeapHeader* parse_local(ParseState* pstate) {
+	HeapHeader* stat = NULL;
+	HeapHeader* body = NULL;
+	HeapHeader* an = NULL;
+	HeapHeader* el = NULL;
 	Token* name_tok = NULL;
 
 	ps_advance(pstate);
@@ -1180,8 +1180,8 @@ static heap_header* parse_local(ParseState* pstate) {
 	return stat;
 }
 
-static heap_header* parse_goto(ParseState* pstate) {
-	heap_header* stat = NULL;
+static HeapHeader* parse_goto(ParseState* pstate) {
+	HeapHeader* stat = NULL;
 	Token* name_tok = NULL;
 
 	ps_advance(pstate);
@@ -1200,8 +1200,8 @@ static heap_header* parse_goto(ParseState* pstate) {
 	return stat;
 }
 
-static heap_header* parse_label(ParseState* pstate) {
-	heap_header* stat = NULL;
+static HeapHeader* parse_label(ParseState* pstate) {
+	HeapHeader* stat = NULL;
 	Token* name_tok = NULL;
 
 	ps_advance(pstate);
@@ -1224,11 +1224,11 @@ static heap_header* parse_label(ParseState* pstate) {
 	return stat;
 }
 
-static heap_header* parse_exprstat(ParseState* pstate) {
-	heap_header* stat = NULL;
-	heap_header* expr = NULL;
-	heap_header* var = NULL;
-	heap_header* el = NULL;
+static HeapHeader* parse_exprstat(ParseState* pstate) {
+	HeapHeader* stat = NULL;
+	HeapHeader* expr = NULL;
+	HeapHeader* var = NULL;
+	HeapHeader* el = NULL;
 
 	expr = parse_suffixedexp(pstate);
 	if (NULL == expr) {
@@ -1289,7 +1289,7 @@ static heap_header* parse_exprstat(ParseState* pstate) {
 	return stat;
 }
 
-static heap_header* parse_stat(ParseState* pstate) {
+static HeapHeader* parse_stat(ParseState* pstate) {
 	switch (CURTKN(pstate).token_number) {
 		case TK_IF:       return parse_if(pstate);
 		case TK_WHILE:    return parse_while(pstate);
@@ -1305,10 +1305,10 @@ static heap_header* parse_stat(ParseState* pstate) {
 	}
 }
 
-static heap_header* parse_block(ParseState* pstate) {
-	heap_header* block = NULL;
-	heap_header* ret = NULL;
-	heap_header* st = NULL;
+static HeapHeader* parse_block(ParseState* pstate) {
+	HeapHeader* block = NULL;
+	HeapHeader* ret = NULL;
+	HeapHeader* st = NULL;
 
 	block = mclast_alloc(PN_BLOCK, 4, pstate->heap);
 	if (NULL == block) {
@@ -1379,11 +1379,11 @@ void mcparse_free(ParseState* pstate) {
 	pstate->root = NULL;
 }
 
-static heap_header* parse_function(ParseState* pstate, u8 is_main) {
-	heap_header* newfunc = NULL;
-	heap_header* name = NULL;
-	heap_header* arglist = NULL;
-	heap_header* block = NULL;
+static HeapHeader* parse_function(ParseState* pstate, u8 is_main) {
+	HeapHeader* newfunc = NULL;
+	HeapHeader* name = NULL;
+	HeapHeader* arglist = NULL;
+	HeapHeader* block = NULL;
 	i8 rcode = 0;
 
 	newfunc = mclast_alloc(PN_FUNCDEF, 3, pstate->heap);
@@ -1433,7 +1433,7 @@ static heap_header* parse_function(ParseState* pstate, u8 is_main) {
 	return newfunc;
 }
 
-static heap_header* mcparse_parseroot(ParseState* pstate, TokenArray* tokens) {
+static HeapHeader* mcparse_parseroot(ParseState* pstate, TokenArray* tokens) {
 	pstate->tokens = tokens;
 	pstate->pos = 0;
 	pstate->error = 0;
@@ -1453,7 +1453,7 @@ static const char* nodestr[] = {
 
 #define PN2STR(type) (nodestr[(type)])
 
-void mcparse_log_node(heap_header* node, i32 depth) {
+void mcparse_log_node(HeapHeader* node, i32 depth) {
 	if (NULL == node) {
 		return;
 	}

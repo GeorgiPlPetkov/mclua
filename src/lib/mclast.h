@@ -66,8 +66,8 @@ typedef struct mclastnode {
 #define AST_VAL(node)        ((node)->object.astnode->val)
 #define AST_NCHILD(node)     ((node)->object.astnode->child_count)
 #define AST_CHILD(node, idx) (mclast_children(node)[(idx)])
-#define AST_CHILD_CAP(node)  (((node)->objcap - sizeof(mclastnode)) / sizeof(heap_header*))
+#define AST_CHILD_CAP(node)  (((node)->objcap - sizeof(mclastnode)) / sizeof(HeapHeader*))
 
-heap_header* mclast_alloc(ParseNodeType type, u32 child_cap, MCHeap* heap);
-i8 mclast_push_child(heap_header* parent, heap_header* child, MCHeap* heap);
-heap_header** mclast_children(heap_header* node);
+HeapHeader* mclast_alloc(ParseNodeType type, u32 child_cap, MCHeap* heap);
+i8 mclast_push_child(HeapHeader* parent, HeapHeader* child, MCHeap* heap);
+HeapHeader** mclast_children(HeapHeader* node);

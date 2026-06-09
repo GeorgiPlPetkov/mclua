@@ -33,7 +33,7 @@ typedef union SemanticInfo {
     i64 integer;
     f64 number;
     char* varname;
-    heap_header* heapobj;
+    HeapHeader* heapobj;
 } SemanticInfo;
 
 typedef struct Token {

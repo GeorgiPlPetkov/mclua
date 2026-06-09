@@ -15,7 +15,7 @@ static const char* terminator_name(ParseNodeType t) {
 	return "goto";
 }
 
-static i8 unreach_visit(void* ctx, heap_header* node, u32 depth) {
+static i8 unreach_visit(void* ctx, HeapHeader* node, u32 depth) {
 	(void) ctx;
 	(void) depth;
 
@@ -24,7 +24,7 @@ static i8 unreach_visit(void* ctx, heap_header* node, u32 depth) {
 	}
 
 	u32 n = AST_NCHILD(node);
-	heap_header** children = mclast_children(node);
+	HeapHeader** children = mclast_children(node);
 
 	for (u32 idx = 0; (idx + 1) < n; idx += 1) {
 		ParseNodeType t = AST_TYPE(children[idx]);

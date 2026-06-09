@@ -43,49 +43,49 @@ static i32 mccomp_const_name(MCComp* cstate, char* name);
 static i8 mccomp_cmp_describe(i64 tok, CmpDesc* out);
 static i8 mccomp_arith_opcode(i64 tok, u8* out, u8* tm);
 static i32 mccomp_emit_skip_placeholder(MCComp* cstate, const char* what);
-static i32 mccomp_name(MCComp* cstate, heap_header* node);
-static i32 mccomp_integer(MCComp* cstate, heap_header* node);
-static i32 mccomp_float(MCComp* cstate, heap_header* node);
-static i32 mccomp_compare_value(MCComp* cstate, heap_header* node);
-static i32 mccomp_logical(MCComp* cstate, heap_header* node, u8 is_and);
-static i32 mccomp_binop(MCComp* cstate, heap_header* node);
-static i32 mccomp_unop(MCComp* cstate, heap_header* node);
-static u8 mccomp_is_multi_exp(heap_header* node);
+static i32 mccomp_name(MCComp* cstate, HeapHeader* node);
+static i32 mccomp_integer(MCComp* cstate, HeapHeader* node);
+static i32 mccomp_float(MCComp* cstate, HeapHeader* node);
+static i32 mccomp_compare_value(MCComp* cstate, HeapHeader* node);
+static i32 mccomp_logical(MCComp* cstate, HeapHeader* node, u8 is_and);
+static i32 mccomp_binop(MCComp* cstate, HeapHeader* node);
+static i32 mccomp_unop(MCComp* cstate, HeapHeader* node);
+static u8 mccomp_is_multi_exp(HeapHeader* node);
 static i32 mccomp_vararg(MCComp* cstate, i32 want);
-static i32 mccomp_call(MCComp* cstate, heap_header* node, i32 want);
-static i32 mccomp_exp_multi(MCComp* cstate, heap_header* node, i32 want);
-static u8 mccomp_int_key_fits(heap_header* key, u8* out);
-static i32 mccomp_index(MCComp* cstate, heap_header* node);
-static i8 mccomp_store(MCComp* cstate, heap_header* target, u8 valreg);
-static i8 mccomp_table_set_idx(MCComp* cstate, u8 ra, heap_header* field,
+static i32 mccomp_call(MCComp* cstate, HeapHeader* node, i32 want);
+static i32 mccomp_exp_multi(MCComp* cstate, HeapHeader* node, i32 want);
+static u8 mccomp_int_key_fits(HeapHeader* key, u8* out);
+static i32 mccomp_index(MCComp* cstate, HeapHeader* node);
+static i8 mccomp_store(MCComp* cstate, HeapHeader* target, u8 valreg);
+static i8 mccomp_table_set_idx(MCComp* cstate, u8 ra, HeapHeader* field,
         u8 base);
-static i32 mccomp_table(MCComp* cstate, heap_header* node);
-static i32 mccomp_exp(MCComp* cstate, heap_header* node);
-static i64 mccomp_cond(MCComp* cstate, heap_header* node);
-static const char* mccomp_attname_attr(heap_header* attname);
-static i8 mccomp_local(MCComp* cstate, heap_header* stat);
-static i8 mccomp_assign(MCComp* cstate, heap_header* stat);
-static i8 mccomp_return(MCComp* cstate, heap_header* stat);
-static i8 mccomp_if(MCComp* cstate, heap_header* stat);
-static i8 mccomp_while(MCComp* cstate, heap_header* stat);
-static i8 mccomp_repeat(MCComp* cstate, heap_header* stat);
-static i8 mccomp_fornum(MCComp* cstate, heap_header* stat);
-static i8 mccomp_forin(MCComp* cstate, heap_header* stat);
+static i32 mccomp_table(MCComp* cstate, HeapHeader* node);
+static i32 mccomp_exp(MCComp* cstate, HeapHeader* node);
+static i64 mccomp_cond(MCComp* cstate, HeapHeader* node);
+static const char* mccomp_attname_attr(HeapHeader* attname);
+static i8 mccomp_local(MCComp* cstate, HeapHeader* stat);
+static i8 mccomp_assign(MCComp* cstate, HeapHeader* stat);
+static i8 mccomp_return(MCComp* cstate, HeapHeader* stat);
+static i8 mccomp_if(MCComp* cstate, HeapHeader* stat);
+static i8 mccomp_while(MCComp* cstate, HeapHeader* stat);
+static i8 mccomp_repeat(MCComp* cstate, HeapHeader* stat);
+static i8 mccomp_fornum(MCComp* cstate, HeapHeader* stat);
+static i8 mccomp_forin(MCComp* cstate, HeapHeader* stat);
 static i8 mccomp_break(MCComp* cstate);
-static i8 mccomp_funcdef(MCComp* cstate, heap_header* stat);
-static i32 mccomp_func_expr(MCComp* cstate, heap_header* node);
-static i8 mccomp_localfunc(MCComp* cstate, heap_header* stat);
-static i8 mccomp_label(MCComp* cstate, heap_header* stat);
-static i8 mccomp_goto(MCComp* cstate, heap_header* stat);
-static i8 mccomp_stat(MCComp* cstate, heap_header* stat);
-static i8 mccomp_block_body(MCComp* cstate, heap_header* block);
-static i8 mccomp_block(MCComp* cstate, heap_header* block);
-static heap_header* mccomp_body(MCComp* cstate, char* name,
-        heap_header* arglist, heap_header* block, u8 is_method);
-static heap_header* mccomp_proto(MCComp* parent, char* name,
-        heap_header* arglist, heap_header* block, u8 is_method);
+static i8 mccomp_funcdef(MCComp* cstate, HeapHeader* stat);
+static i32 mccomp_func_expr(MCComp* cstate, HeapHeader* node);
+static i8 mccomp_localfunc(MCComp* cstate, HeapHeader* stat);
+static i8 mccomp_label(MCComp* cstate, HeapHeader* stat);
+static i8 mccomp_goto(MCComp* cstate, HeapHeader* stat);
+static i8 mccomp_stat(MCComp* cstate, HeapHeader* stat);
+static i8 mccomp_block_body(MCComp* cstate, HeapHeader* block);
+static i8 mccomp_block(MCComp* cstate, HeapHeader* block);
+static HeapHeader* mccomp_body(MCComp* cstate, char* name,
+        HeapHeader* arglist, HeapHeader* block, u8 is_method);
+static HeapHeader* mccomp_proto(MCComp* parent, char* name,
+        HeapHeader* arglist, HeapHeader* block, u8 is_method);
 static void mccomp_log_instr(u32 instr);
-static void mccomp_log_consts(heap_header* func);
+static void mccomp_log_consts(HeapHeader* func);
 
 static i64 mccomp_emit(MCComp* cstate, u32 instr) {
     u32 pc = FUNCLEN(cstate);
@@ -183,7 +183,7 @@ static i8 mccomp_newlocal(MCComp* cstate, char* name, u8 reg) {
 
 static i32 mccomp_const_name(MCComp* cstate, char* name) {
     u32 len = (u32) strlen(name);
-    heap_header* str = mclstr_alloc(len + 1, cstate->heap);
+    HeapHeader* str = mclstr_alloc(len + 1, cstate->heap);
 
     if (NULL == str) {
         cstate->error = 1;
@@ -302,7 +302,7 @@ static i32 mccomp_emit_skip_placeholder(MCComp* cstate, const char* what) {
     return reg;
 }
 
-static i32 mccomp_name(MCComp* cstate, heap_header* node) {
+static i32 mccomp_name(MCComp* cstate, HeapHeader* node) {
     char* name = AST_VAL(node).varname;
     i32 src = mccomp_resolve_local(cstate, name);
     i32 up = 0;
@@ -332,7 +332,7 @@ static i32 mccomp_name(MCComp* cstate, heap_header* node) {
     return dst;
 }
 
-static i32 mccomp_integer(MCComp* cstate, heap_header* node) {
+static i32 mccomp_integer(MCComp* cstate, HeapHeader* node) {
     i64 v = AST_VAL(node).integer;
     i32 konst = 0;
     u8 reg = mccomp_reserve(cstate);
@@ -350,7 +350,7 @@ static i32 mccomp_integer(MCComp* cstate, heap_header* node) {
     return reg;
 }
 
-static i32 mccomp_float(MCComp* cstate, heap_header* node) {
+static i32 mccomp_float(MCComp* cstate, HeapHeader* node) {
     f64 v = AST_VAL(node).number;
     i64 iv = (i64) v;
     i32 konst = 0;
@@ -370,7 +370,7 @@ static i32 mccomp_float(MCComp* cstate, heap_header* node) {
     return reg;
 }
 
-static i32 mccomp_compare_value(MCComp* cstate, heap_header* node) {
+static i32 mccomp_compare_value(MCComp* cstate, HeapHeader* node) {
     CmpDesc desc = {0, 0, 0};
     i32 ra = 0;
     i32 rb = 0;
@@ -404,7 +404,7 @@ static i32 mccomp_compare_value(MCComp* cstate, heap_header* node) {
 
 
 
-static i32 mccomp_logical(MCComp* cstate, heap_header* node, u8 is_and) {
+static i32 mccomp_logical(MCComp* cstate, HeapHeader* node, u8 is_and) {
     u8 dst = cstate->freereg;
     i32 la = 0;
     i64 jmp = NO_JUMP;
@@ -427,7 +427,7 @@ static i32 mccomp_logical(MCComp* cstate, heap_header* node, u8 is_and) {
     return dst;
 }
 
-static i32 mccomp_binop(MCComp* cstate, heap_header* node) {
+static i32 mccomp_binop(MCComp* cstate, HeapHeader* node) {
     i64 tok = AST_VAL(node).integer;
     u8 op = 0;
     u8 tm = 0;
@@ -464,7 +464,7 @@ static i32 mccomp_binop(MCComp* cstate, heap_header* node) {
     return ra;
 }
 
-static i32 mccomp_unop(MCComp* cstate, heap_header* node) {
+static i32 mccomp_unop(MCComp* cstate, HeapHeader* node) {
     i64 tok = AST_VAL(node).integer;
     i32 rc = 0;
     u8 op = 0;
@@ -488,7 +488,7 @@ static i32 mccomp_unop(MCComp* cstate, heap_header* node) {
     return rc;
 }
 
-static u8 mccomp_is_multi_exp(heap_header* node) {
+static u8 mccomp_is_multi_exp(HeapHeader* node) {
     ParseNodeType t = AST_TYPE(node);
     return (PN_CALL == t) || (PN_CALL_METHOD == t) || (PN_VARARG == t);
 }
@@ -502,7 +502,7 @@ static i32 mccomp_vararg(MCComp* cstate, i32 want) {
 }
 
 
-static i32 mccomp_call(MCComp* cstate, heap_header* node, i32 want) {
+static i32 mccomp_call(MCComp* cstate, HeapHeader* node, i32 want) {
     u8 base = cstate->freereg;
     u8 is_method = (PN_CALL_METHOD == AST_TYPE(node));
     u32 nchild = AST_NCHILD(node);
@@ -513,7 +513,7 @@ static i32 mccomp_call(MCComp* cstate, heap_header* node, i32 want) {
     u8 b = 0;
     u8 c = 0;
     i32 konst = 0;
-    heap_header* arg = NULL;
+    HeapHeader* arg = NULL;
 
     if (mccomp_exp(cstate, AST_CHILD(node, 0)) < 0) {
         return -1;
@@ -551,7 +551,7 @@ static i32 mccomp_call(MCComp* cstate, heap_header* node, i32 want) {
     return base;
 }
 
-static i32 mccomp_exp_multi(MCComp* cstate, heap_header* node, i32 want) {
+static i32 mccomp_exp_multi(MCComp* cstate, HeapHeader* node, i32 want) {
     switch (AST_TYPE(node)) {
         case PN_CALL:
         case PN_CALL_METHOD:
@@ -564,7 +564,7 @@ static i32 mccomp_exp_multi(MCComp* cstate, heap_header* node, i32 want) {
 }
 
 
-static u8 mccomp_int_key_fits(heap_header* key, u8* out) {
+static u8 mccomp_int_key_fits(HeapHeader* key, u8* out) {
     if ((PN_INTEGER == AST_TYPE(key))
             && (AST_VAL(key).integer >= 0)
             && (AST_VAL(key).integer <= 255)) {
@@ -575,12 +575,12 @@ static u8 mccomp_int_key_fits(heap_header* key, u8* out) {
 }
 
 
-static i32 mccomp_index(MCComp* cstate, heap_header* node) {
+static i32 mccomp_index(MCComp* cstate, HeapHeader* node) {
     i32 tbl = mccomp_exp(cstate, AST_CHILD(node, 0));
     i32 konst = 0;
     i32 kr = 0;
     u8 ik = 0;
-    heap_header* key = NULL;
+    HeapHeader* key = NULL;
 
     if (tbl < 0) {
         return -1;
@@ -623,12 +623,12 @@ static i32 mccomp_index(MCComp* cstate, heap_header* node) {
 
 
 
-static i8 mccomp_store(MCComp* cstate, heap_header* target, u8 valreg) {
+static i8 mccomp_store(MCComp* cstate, HeapHeader* target, u8 valreg) {
     i32 tbl = 0;
     i32 konst = 0;
     i32 kr = 0;
     u8 ik = 0;
-    heap_header* key = NULL;
+    HeapHeader* key = NULL;
 
     tbl = mccomp_exp(cstate, AST_CHILD(target, 0));
     if (tbl < 0) {
@@ -666,9 +666,9 @@ static i8 mccomp_store(MCComp* cstate, heap_header* target, u8 valreg) {
     return 0;
 }
 
-static i8 mccomp_table_set_idx(MCComp* cstate, u8 ra, heap_header* field, u8 base) {
-    heap_header* key = AST_CHILD(field, 0);
-    heap_header* val = AST_CHILD(field, 1);
+static i8 mccomp_table_set_idx(MCComp* cstate, u8 ra, HeapHeader* field, u8 base) {
+    HeapHeader* key = AST_CHILD(field, 0);
+    HeapHeader* val = AST_CHILD(field, 1);
     i32 konst = 0;
     i32 kr = 0;
     i32 vr = 0;
@@ -708,7 +708,7 @@ static i8 mccomp_table_set_idx(MCComp* cstate, u8 ra, heap_header* field, u8 bas
     return 0;
 }
 
-static i32 mccomp_table(MCComp* cstate, heap_header* node) {
+static i32 mccomp_table(MCComp* cstate, HeapHeader* node) {
     u8 ra = mccomp_reserve(cstate);
     i64 newpc = 0;
     u32 nchild = AST_NCHILD(node);
@@ -717,8 +717,8 @@ static i32 mccomp_table(MCComp* cstate, heap_header* node) {
     u32 arrtotal = 0;
     u32 hashcount = 0;
     u8 last_open = 0;
-    heap_header* field = NULL;
-    heap_header* val = NULL;
+    HeapHeader* field = NULL;
+    HeapHeader* val = NULL;
     i32 konst = 0;
     i32 vr = 0;
     u8 save = 0;
@@ -791,7 +791,7 @@ static i32 mccomp_table(MCComp* cstate, heap_header* node) {
     return ra;
 }
 
-static i32 mccomp_exp(MCComp* cstate, heap_header* node) {
+static i32 mccomp_exp(MCComp* cstate, HeapHeader* node) {
     i32 konst = 0;
     u8 reg = 0;
 
@@ -851,7 +851,7 @@ static i32 mccomp_exp(MCComp* cstate, heap_header* node) {
     }
 }
 
-static i64 mccomp_cond(MCComp* cstate, heap_header* node) {
+static i64 mccomp_cond(MCComp* cstate, HeapHeader* node) {
     CmpDesc desc = {0, 0, 0};
     i32 ra = 0;
     i32 rb = 0;
@@ -883,14 +883,14 @@ static i64 mccomp_cond(MCComp* cstate, heap_header* node) {
 }
 
 
-static const char* mccomp_attname_attr(heap_header* attname) {
+static const char* mccomp_attname_attr(HeapHeader* attname) {
     if (AST_NCHILD(attname) > 0) {
         return AST_VAL(AST_CHILD(attname, 0)).varname;
     }
     return NULL;
 }
 
-static i8 mccomp_local(MCComp* cstate, heap_header* stat) {
+static i8 mccomp_local(MCComp* cstate, HeapHeader* stat) {
     u32 nname = (u32) AST_VAL(stat).integer;
     u32 nchild = AST_NCHILD(stat);
     u32 nexpr = nchild - nname;
@@ -899,7 +899,7 @@ static i8 mccomp_local(MCComp* cstate, heap_header* stat) {
     u32 produced = 0;
     u8 has_close = 0;
     const char* attr = NULL;
-    heap_header* e = NULL;
+    HeapHeader* e = NULL;
     i32 want = 0;
 
     for (idx = 0; idx < nexpr; idx += 1) {
@@ -948,7 +948,7 @@ static i8 mccomp_local(MCComp* cstate, heap_header* stat) {
     return 0;
 }
 
-static i8 mccomp_assign(MCComp* cstate, heap_header* stat) {
+static i8 mccomp_assign(MCComp* cstate, HeapHeader* stat) {
     u32 ntarget = (u32) AST_VAL(stat).integer;
     u32 nchild = AST_NCHILD(stat);
     u32 nval = nchild - ntarget;
@@ -956,8 +956,8 @@ static i8 mccomp_assign(MCComp* cstate, heap_header* stat) {
     u32 idx = 0;
     u32 produced = 0;
     u8 scratch = 0;
-    heap_header* target = NULL;
-    heap_header* e = NULL;
+    HeapHeader* target = NULL;
+    HeapHeader* e = NULL;
     i32 dst = 0;
     i32 up = 0;
     i32 konst = 0;
@@ -1027,12 +1027,12 @@ static i8 mccomp_assign(MCComp* cstate, heap_header* stat) {
     return 0;
 }
 
-static i8 mccomp_return(MCComp* cstate, heap_header* stat) {
+static i8 mccomp_return(MCComp* cstate, HeapHeader* stat) {
     u32 nret = AST_NCHILD(stat);
     u8 base = cstate->nactive;
     u32 idx = 0;
     u8 open = 0;
-    heap_header* e = NULL;
+    HeapHeader* e = NULL;
 
     cstate->freereg = base;
     if (0 == nret) {
@@ -1064,13 +1064,13 @@ static i8 mccomp_return(MCComp* cstate, heap_header* stat) {
     return 0;
 }
 
-static i8 mccomp_if(MCComp* cstate, heap_header* stat) {
+static i8 mccomp_if(MCComp* cstate, HeapHeader* stat) {
     u32 nchild = AST_NCHILD(stat);
     u32 idx = 0;
     i64 jfalse = NO_JUMP;
     i64 endjumps[64];
     u8 nend = 0;
-    heap_header* clause = NULL;
+    HeapHeader* clause = NULL;
 
     jfalse = mccomp_cond(cstate, AST_CHILD(stat, 0));
     if (0 != mccomp_block(cstate, AST_CHILD(stat, 1))) {
@@ -1106,7 +1106,7 @@ static i8 mccomp_if(MCComp* cstate, heap_header* stat) {
     return 0;
 }
 
-static i8 mccomp_while(MCComp* cstate, heap_header* stat) {
+static i8 mccomp_while(MCComp* cstate, HeapHeader* stat) {
     u32 top = FUNCLEN(cstate);
     i64 jfalse = NO_JUMP;
     u8 saved_breaks = cstate->nbreaks;
@@ -1129,7 +1129,7 @@ static i8 mccomp_while(MCComp* cstate, heap_header* stat) {
     return 0;
 }
 
-static i8 mccomp_repeat(MCComp* cstate, heap_header* stat) {
+static i8 mccomp_repeat(MCComp* cstate, HeapHeader* stat) {
     u32 top = FUNCLEN(cstate);
     u8 saved = cstate->nactive;
     u8 saved_breaks = cstate->nbreaks;
@@ -1153,11 +1153,11 @@ static i8 mccomp_repeat(MCComp* cstate, heap_header* stat) {
     return 0;
 }
 
-static i8 mccomp_fornum(MCComp* cstate, heap_header* stat) {
+static i8 mccomp_fornum(MCComp* cstate, HeapHeader* stat) {
     u32 nchild = AST_NCHILD(stat);
     u8 has_step = (4 == nchild);
     u8 base = cstate->nactive;
-    heap_header* block = AST_CHILD(stat, nchild - 1);
+    HeapHeader* block = AST_CHILD(stat, nchild - 1);
     i64 prep_pc = NO_JUMP;
     i64 loop_pc = NO_JUMP;
     u32 bodystart = 0;
@@ -1209,13 +1209,13 @@ static i8 mccomp_fornum(MCComp* cstate, heap_header* stat) {
 
 
 
-static i8 mccomp_forin(MCComp* cstate, heap_header* stat) {
+static i8 mccomp_forin(MCComp* cstate, HeapHeader* stat) {
     u32 nchild = AST_NCHILD(stat);
     u32 nnames = (u32) AST_VAL(stat).integer;
     u32 nexp = nchild - nnames - 1;
     u8 base = cstate->nactive;
-    heap_header* block = AST_CHILD(stat, nchild - 1);
-    heap_header* e = NULL;
+    HeapHeader* block = AST_CHILD(stat, nchild - 1);
+    HeapHeader* e = NULL;
     i64 prep_pc = NO_JUMP;
     i64 call_pc = NO_JUMP;
     i64 loop_pc = NO_JUMP;
@@ -1317,13 +1317,13 @@ static i8 mccomp_break(MCComp* cstate) {
     return 0;
 }
 
-static i8 mccomp_funcdef(MCComp* cstate, heap_header* stat) {
-    heap_header* name = AST_CHILD(stat, 0);
-    heap_header* arglist = AST_CHILD(stat, 1);
-    heap_header* block = AST_CHILD(stat, 2);
+static i8 mccomp_funcdef(MCComp* cstate, HeapHeader* stat) {
+    HeapHeader* name = AST_CHILD(stat, 0);
+    HeapHeader* arglist = AST_CHILD(stat, 1);
+    HeapHeader* block = AST_CHILD(stat, 2);
     u8 is_method = (u8) (0 != AST_VAL(stat).integer);
     u32 nparts = AST_NCHILD(name);
-    heap_header* proto = NULL;
+    HeapHeader* proto = NULL;
     i32 pidx = 0;
     i32 konst = 0;
     u8 reg = 0;
@@ -1369,9 +1369,9 @@ static i8 mccomp_funcdef(MCComp* cstate, heap_header* stat) {
     return 0;
 }
 
-static i8 mccomp_localfunc(MCComp* cstate, heap_header* stat) {
-    heap_header* body = AST_CHILD(stat, 0);
-    heap_header* proto = NULL;
+static i8 mccomp_localfunc(MCComp* cstate, HeapHeader* stat) {
+    HeapHeader* body = AST_CHILD(stat, 0);
+    HeapHeader* proto = NULL;
     i32 pidx = 0;
     u8 reg = cstate->nactive;
 
@@ -1397,9 +1397,9 @@ static i8 mccomp_localfunc(MCComp* cstate, heap_header* stat) {
     return 0;
 }
 
-static i32 mccomp_func_expr(MCComp* cstate, heap_header* node) {
-    heap_header* body = AST_CHILD(node, 0);
-    heap_header* proto = NULL;
+static i32 mccomp_func_expr(MCComp* cstate, HeapHeader* node) {
+    HeapHeader* body = AST_CHILD(node, 0);
+    HeapHeader* proto = NULL;
     i32 pidx = 0;
     u8 reg = 0;
 
@@ -1421,7 +1421,7 @@ static i32 mccomp_func_expr(MCComp* cstate, heap_header* node) {
     return reg;
 }
 
-static i8 mccomp_label(MCComp* cstate, heap_header* stat) {
+static i8 mccomp_label(MCComp* cstate, HeapHeader* stat) {
     char* name = AST_VAL(stat).varname;
     u32 here = FUNCLEN(cstate);
     u8 idx = 0;
@@ -1445,7 +1445,7 @@ static i8 mccomp_label(MCComp* cstate, heap_header* stat) {
     return 0;
 }
 
-static i8 mccomp_goto(MCComp* cstate, heap_header* stat) {
+static i8 mccomp_goto(MCComp* cstate, HeapHeader* stat) {
     char* name = AST_VAL(stat).varname;
     i64 pc = 0;
     u8 idx = 0;
@@ -1470,7 +1470,7 @@ static i8 mccomp_goto(MCComp* cstate, heap_header* stat) {
     return 0;
 }
 
-static i8 mccomp_stat(MCComp* cstate, heap_header* stat) {
+static i8 mccomp_stat(MCComp* cstate, HeapHeader* stat) {
     switch (AST_TYPE(stat)) {
         case PN_LOCAL:
             return mccomp_local(cstate, stat);
@@ -1510,7 +1510,7 @@ static i8 mccomp_stat(MCComp* cstate, heap_header* stat) {
     }
 }
 
-static i8 mccomp_block_body(MCComp* cstate, heap_header* block) {
+static i8 mccomp_block_body(MCComp* cstate, HeapHeader* block) {
     u32 nchild = AST_NCHILD(block);
     u32 idx = 0;
 
@@ -1528,7 +1528,7 @@ static i8 mccomp_block_body(MCComp* cstate, heap_header* block) {
     return 0;
 }
 
-static i8 mccomp_block(MCComp* cstate, heap_header* block) {
+static i8 mccomp_block(MCComp* cstate, HeapHeader* block) {
     u8 saved = cstate->nactive;
     i8 rcode = mccomp_block_body(cstate, block);
 
@@ -1538,8 +1538,8 @@ static i8 mccomp_block(MCComp* cstate, heap_header* block) {
     return rcode;
 }
 
-static heap_header* mccomp_body(MCComp* cstate, char* name,
-        heap_header* arglist, heap_header* block, u8 is_method) {
+static HeapHeader* mccomp_body(MCComp* cstate, char* name,
+        HeapHeader* arglist, HeapHeader* block, u8 is_method) {
     mclfunc* fn = NULL;
     u32 idx = 0;
 
@@ -1606,8 +1606,8 @@ static heap_header* mccomp_body(MCComp* cstate, char* name,
     return cstate->func;
 }
 
-static heap_header* mccomp_proto(MCComp* parent, char* name,
-        heap_header* arglist, heap_header* block, u8 is_method) {
+static HeapHeader* mccomp_proto(MCComp* parent, char* name,
+        HeapHeader* arglist, HeapHeader* block, u8 is_method) {
     MCComp sub;
 
     if (0 != mccomp_init(&sub, parent->heap, parent->config, parent->strtbl)) {
@@ -1654,7 +1654,7 @@ i8 mccomp_init(MCComp* cstate, MCHeap* heap, VMConfig* config, StringTable* strt
     return 0;
 }
 
-heap_header* mccomp_run(MCComp* cstate, heap_header* ast_root) {
+HeapHeader* mccomp_run(MCComp* cstate, HeapHeader* ast_root) {
     if ((NULL == cstate) || (NULL == ast_root)) {
         return NULL;
     }
@@ -1695,7 +1695,7 @@ static void mccomp_log_instr(u32 instr) {
     printf("\n");
 }
 
-static void mccomp_log_consts(heap_header* func) {
+static void mccomp_log_consts(HeapHeader* func) {
     mclfunc* fn = func->object.function;
     Constant* consts = mclfunc_getconsts(func);
     u32 idx = 0;
@@ -1720,9 +1720,9 @@ static void mccomp_log_consts(heap_header* func) {
     }
 }
 
-void mccomp_log(heap_header* func) {
+void mccomp_log(HeapHeader* func) {
     mclfunc* fn = NULL;
-    heap_header** protos = NULL;
+    HeapHeader** protos = NULL;
     u32* code = NULL;
     u32 idx = 0;
 

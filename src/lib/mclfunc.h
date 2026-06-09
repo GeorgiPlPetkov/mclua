@@ -25,9 +25,10 @@ typedef struct UpvalDesc {
 
 typedef struct mclfunc {
     char* name;
-    heap_header* constants;
-    heap_header* protos;
-    heap_header* upvals;
+    HeapHeader* constants;
+    HeapHeader* const_index;
+    HeapHeader* protos;
+    HeapHeader* upvals;
     u8 num_params;
     u8 is_vararg;
     u8 num_upvals;
@@ -35,24 +36,25 @@ typedef struct mclfunc {
     u32 code_len;
     u32 num_consts;
     u32 num_protos;
+    u32 const_index_cap;
 } mclfunc;
 
 #define FUNCLEN(cstate) ((cstate)->func->object.function->code_len)
 
-heap_header* mclfunc_alloc(u32 code_cap, MCHeap* heap);
+HeapHeader* mclfunc_alloc(u32 code_cap, MCHeap* heap);
 
-u32* mclfunc_getbody(heap_header* func);
-i8 mclfunc_append_instr(heap_header* func, u32 instr, MCHeap* heap);
+u32* mclfunc_getbody(HeapHeader* func);
+i8 mclfunc_append_instr(HeapHeader* func, u32 instr, MCHeap* heap);
 
-Constant* mclfunc_getconsts(heap_header* func);
-heap_header** mclfunc_getprotos(heap_header* func);
-UpvalDesc* mclfunc_getupvals(heap_header* func);
+Constant* mclfunc_getconsts(HeapHeader* func);
+HeapHeader** mclfunc_getprotos(HeapHeader* func);
+UpvalDesc* mclfunc_getupvals(HeapHeader* func);
 
-i32 mclfunc_const_int(heap_header* func, i64 value, MCHeap* heap);
-i32 mclfunc_const_flt(heap_header* func, f64 value, MCHeap* heap);
-i32 mclfunc_const_str(heap_header* func, heap_header* str, MCHeap* heap);
-i32 mclfunc_add_proto(heap_header* func, heap_header* proto, MCHeap* heap);
-i32 mclfunc_add_upval(heap_header* func, char* name, u8 instack, u8 idx,
+i32 mclfunc_const_int(HeapHeader* func, i64 value, MCHeap* heap);
+i32 mclfunc_const_flt(HeapHeader* func, f64 value, MCHeap* heap);
+i32 mclfunc_const_str(HeapHeader* func, HeapHeader* str, MCHeap* heap);
+i32 mclfunc_add_proto(HeapHeader* func, HeapHeader* proto, MCHeap* heap);
+i32 mclfunc_add_upval(HeapHeader* func, char* name, u8 instack, u8 idx,
         MCHeap* heap);
 
-void mclfunc_clear(heap_header* func);
+void mclfunc_clear(HeapHeader* func);

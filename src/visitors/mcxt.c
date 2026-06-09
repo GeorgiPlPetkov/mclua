@@ -36,12 +36,12 @@ CLEANUP:
     return rcode;
 }
 
-static i8 astv_walk(ASTVisitor* v, heap_header* node, u32 depth) {
+static i8 astv_walk(ASTVisitor* v, HeapHeader* node, u32 depth) {
     i8 rc = v->visit(v->ctx, node, depth);
     if (0 != rc) {
         return rc;
     }
-    heap_header** children = mclast_children(node);
+    HeapHeader** children = mclast_children(node);
     for (u32 idx = 0; idx < AST_NCHILD(node); idx += 1) {
         if (NULL == children[idx]) {
             continue;
@@ -54,7 +54,7 @@ static i8 astv_walk(ASTVisitor* v, heap_header* node, u32 depth) {
     return 0;
 }
 
-static i8 astv_run(ASTVisitor* v, heap_header* root) {
+static i8 astv_run(ASTVisitor* v, HeapHeader* root) {
     i8 rcode = 0;
 
     if (NULL != v->init) {
@@ -151,7 +151,7 @@ i8 mcxt_run_tkv(MCExt* ext, TokenArray* arr) {
     return 0;
 }
 
-i8 mcxt_run_astv(MCExt* ext, heap_header* root) {
+i8 mcxt_run_astv(MCExt* ext, HeapHeader* root) {
     i8 rcode = 0;
     u32 end  = ext->tkv_count + ext->astv_count;
     for (u32 idx = ext->tkv_count; idx < end; idx += 1) {

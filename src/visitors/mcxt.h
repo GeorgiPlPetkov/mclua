@@ -18,5 +18,5 @@ void mcxt_init(MCExt* ext, void* mem, u32 max);
 i8 mcxt_load_tkv(MCExt* ext, const char* path);
 i8 mcxt_load_astv(MCExt* ext, const char* path);
 i8 mcxt_run_tkv(MCExt* ext, TokenArray* arr);
-i8 mcxt_run_astv(MCExt* ext, heap_header* root);
+i8 mcxt_run_astv(MCExt* ext, HeapHeader* root);
 void mcxt_free(MCExt* ext);

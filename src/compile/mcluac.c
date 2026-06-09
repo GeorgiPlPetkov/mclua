@@ -52,12 +52,12 @@ static i8 luac_put(LuacBfr* bfr, const void* data, u64 n);
 static i8 luac_dump_size(LuacBfr* bfr, u64 x);
 static i8 luac_dump_string(LuacBfr* bfr, const char* str, u64 len);
 static i8 luac_dump_header(LuacBfr* bfr, u8 main_upvals);
-static i8 luac_dump_constants(LuacBfr* bfr, heap_header* func);
-static i8 luac_dump_upvalues(LuacBfr* bfr, heap_header* func);
+static i8 luac_dump_constants(LuacBfr* bfr, HeapHeader* func);
+static i8 luac_dump_upvalues(LuacBfr* bfr, HeapHeader* func);
 static i8 luac_dump_debug(LuacBfr* bfr);
-static i8 luac_dump_function(LuacBfr* bfr, heap_header* func, u8 is_main,
+static i8 luac_dump_function(LuacBfr* bfr, HeapHeader* func, u8 is_main,
         const char* source);
-static i8 luac_tofile(heap_header* func, const char* path,
+static i8 luac_tofile(HeapHeader* func, const char* path,
         const char* chunkname, byte* scratch, u64 scratchcap);
 static i8 luac_init(MCLuac* mc);
 static void luac_free(MCLuac* mc);
@@ -146,11 +146,11 @@ static i8 luac_dump_header(LuacBfr* bfr, u8 main_upvals) {
     return luac_put(bfr, hdr, p);
 }
 
-static i8 luac_dump_constants(LuacBfr* bfr, heap_header* func) {
+static i8 luac_dump_constants(LuacBfr* bfr, HeapHeader* func) {
     mclfunc* fn = func->object.function;
     Constant* consts = mclfunc_getconsts(func);
     u32 idx = 0;
-    heap_header* str = NULL;
+    HeapHeader* str = NULL;
     u32 slen = 0;
 
     if (0 != luac_dump_size(bfr, fn->num_consts)) {
@@ -192,7 +192,7 @@ static i8 luac_dump_constants(LuacBfr* bfr, heap_header* func) {
     return 0;
 }
 
-static i8 luac_dump_upvalues(LuacBfr* bfr, heap_header* func) {
+static i8 luac_dump_upvalues(LuacBfr* bfr, HeapHeader* func) {
     mclfunc* fn = func->object.function;
     UpvalDesc* ups = mclfunc_getupvals(func);
     u32 idx = 0;
@@ -229,11 +229,11 @@ static i8 luac_dump_debug(LuacBfr* bfr) {
     return luac_dump_size(bfr, 0);
 }
 
-static i8 luac_dump_function(LuacBfr* bfr, heap_header* func, u8 is_main,
+static i8 luac_dump_function(LuacBfr* bfr, HeapHeader* func, u8 is_main,
         const char* source) {
     mclfunc* fn = func->object.function;
     u32* code = mclfunc_getbody(func);
-    heap_header** protos = mclfunc_getprotos(func);
+    HeapHeader** protos = mclfunc_getprotos(func);
     u32 idx = 0;
 
     if (0 != luac_dump_string(bfr, is_main ? source : NULL,
@@ -282,7 +282,7 @@ static i8 luac_dump_function(LuacBfr* bfr, heap_header* func, u8 is_main,
     return luac_dump_debug(bfr);
 }
 
-static i8 luac_tofile(heap_header* func, const char* path,
+static i8 luac_tofile(HeapHeader* func, const char* path,
         const char* chunkname, byte* scratch, u64 scratchcap) {
     mcfile out;
     LuacBfr b;
@@ -381,8 +381,8 @@ static void luac_free(MCLuac* mc) {
 
 static i8 luac_compile_file(MCLuac* mc, const char* in, const char* out) {
     i8 rcode = 0;
-    heap_header* root = NULL;
-    heap_header* func = NULL;
+    HeapHeader* root = NULL;
+    HeapHeader* func = NULL;
 
     rcode = mclex_lexscript_file(&mc->lexstate, in);
     if (0 != rcode) {

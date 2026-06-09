@@ -18,7 +18,7 @@ typedef struct MCComp {
     VMConfig* config;
     StringTable* strtbl;
     struct MCComp* parent;      
-    heap_header* func;
+    HeapHeader* func;
     LocalVar* locals;
     u8 nactive;
     u8 freereg;
@@ -37,6 +37,6 @@ typedef struct MCComp {
 } MCComp;
 
 i8 mccomp_init(MCComp* cstate, MCHeap* heap, VMConfig* config, StringTable* strtbl);
-heap_header* mccomp_run(MCComp* cstate, heap_header* ast_root);
+HeapHeader* mccomp_run(MCComp* cstate, HeapHeader* ast_root);
 
-void mccomp_log(heap_header* func);
+void mccomp_log(HeapHeader* func);

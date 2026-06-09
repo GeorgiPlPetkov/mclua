@@ -108,7 +108,7 @@ i8 mclex_lexscript_file(LexState* lexstate, const char* path) {
 void mclex_logtokens(LexState* lstate) {
 	TokenArray* tkn_arr = &lstate->token_array;
 	char* tkn_value = NULL;
-	heap_header* strtkn = NULL;
+	HeapHeader* strtkn = NULL;
 	i64 tkn_num = 0;
 	i64 tkn_idx = 0;
 	char chartkn = 0;
@@ -360,7 +360,7 @@ static i64 mclex_lexid(LexState* lexstate) {
 }
 
 static i64 mclex_lexstring(LexState* lexstate, char quote) {
-	heap_header* newstr = mclstr_alloc(lexstate->config->MIN_STR_LEN,
+	HeapHeader* newstr = mclstr_alloc(lexstate->config->MIN_STR_LEN,
 			lexstate->heap);
 	char* strbfr = lexstate->wordscratch;
 	u64 idx = 0;
@@ -405,7 +405,7 @@ static i64 mclex_lexstring(LexState* lexstate, char quote) {
 }
 
 static i64 mclex_lexlongstring(LexState* lexstate, u64 level) {
-	heap_header* newstr = mclstr_alloc(lexstate->config->MIN_STR_LEN,
+	HeapHeader* newstr = mclstr_alloc(lexstate->config->MIN_STR_LEN,
 			lexstate->heap);
 	char* strbfr = lexstate->wordscratch;
 	u64 idx = 0;

@@ -6,8 +6,8 @@
 #include "mclstr.h"
 #include "mcheap.h"
 
-heap_header* mclstr_alloc(u32 cap, MCHeap* heap) {
-    heap_header* hdr = mcheap_managed_reserve(heap, sizeof(mclstr) + cap);
+HeapHeader* mclstr_alloc(u32 cap, MCHeap* heap) {
+    HeapHeader* hdr = mcheap_managed_reserve(heap, sizeof(mclstr) + cap);
     if (NULL == hdr) {
         return NULL;
     }
@@ -18,7 +18,7 @@ heap_header* mclstr_alloc(u32 cap, MCHeap* heap) {
     return hdr;
 }
 
-i8 mclstr_append_lstr(heap_header* dst, heap_header* src, MCHeap* heap) {
+i8 mclstr_append_lstr(HeapHeader* dst, HeapHeader* src, MCHeap* heap) {
     i8 rcode = 0;
     u32 oldlen = dst->object.string->len;
 
@@ -38,7 +38,7 @@ i8 mclstr_append_lstr(heap_header* dst, heap_header* src, MCHeap* heap) {
     return 0;
 }
 
-i8 mclstr_append_str0(heap_header* dst,
+i8 mclstr_append_str0(HeapHeader* dst,
         const char* str0, u32 str0len, MCHeap* heap) {
     i8 rcode = 0;
     u32 oldlen = dst->object.string->len;
@@ -57,20 +57,20 @@ i8 mclstr_append_str0(heap_header* dst,
     return 0;
 }
 
-char* mclstr_getchars(heap_header* str) {
+char* mclstr_getchars(HeapHeader* str) {
     return (char*) str->object.string + sizeof(mclstr);
 }
 
-u8 mclstr_byte(heap_header* str, u32 idx) {
+u8 mclstr_byte(HeapHeader* str, u32 idx) {
     if (idx >= str->object.string->len) {
         return 0;
     }
     return (u8) mclstr_getchars(str)[idx];
 }
 
-i8 mclstr_cmp(heap_header* str1, heap_header* str2) {
+i8 mclstr_cmp(HeapHeader* str1, HeapHeader* str2) {
     u32 minlen = 0;
-    i8 result = 0;
+    int result = 0;
 
     if (str1->object.string->len < str2->object.string->len) {
         minlen = str1->object.string->len;
@@ -81,7 +81,10 @@ i8 mclstr_cmp(heap_header* str1, heap_header* str2) {
     result = memcmp(mclstr_getchars(str1), mclstr_getchars(str2), minlen);
 
     if (0 != result) {
-        return result;
+        if (result < 0) {
+            return -1;
+        }
+        return 1;
     }
 
     if (str1->object.string->len < str2->object.string->len) {
@@ -95,11 +98,11 @@ i8 mclstr_cmp(heap_header* str1, heap_header* str2) {
     return 0;
 }
 
-i8 mclstr_ptrcmp(heap_header* str1, heap_header* str2) {
+i8 mclstr_ptrcmp(HeapHeader* str1, HeapHeader* str2) {
     return (str1->object.string == str2->object.string);
 }
 
-void mclstr_upper(heap_header* str) {
+void mclstr_upper(HeapHeader* str) {
     char* chars = mclstr_getchars(str);
 
     for (u32 idx = 0; idx < str->object.string->len; idx += 1) {
@@ -107,7 +110,7 @@ void mclstr_upper(heap_header* str) {
     }
 }
 
-void mclstr_lower(heap_header* str) {
+void mclstr_lower(HeapHeader* str) {
     char* chars = mclstr_getchars(str);
 
     for (u32 idx = 0; idx < str->object.string->len; idx += 1) {
@@ -115,7 +118,7 @@ void mclstr_lower(heap_header* str) {
     }
 }
 
-void mclstr_reverse(heap_header* str) {
+void mclstr_reverse(HeapHeader* str) {
     char* chars = mclstr_getchars(str);
     u32 low = 0;
     u32 high = 0;
@@ -135,12 +138,12 @@ void mclstr_reverse(heap_header* str) {
     }
 }
 
-void mclstr_clear(heap_header* str) {
+void mclstr_clear(HeapHeader* str) {
     str->object.string->len = 0;
 }
 
-heap_header* mclstr_sub(u32 start, u32 end, heap_header* str, MCHeap* heap) {
-    heap_header* result = NULL;
+HeapHeader* mclstr_sub(u32 start, u32 end, HeapHeader* str, MCHeap* heap) {
+    HeapHeader* result = NULL;
     u32 sublen = 0;
 
     if ((start > end) || (end > str->object.string->len)) {
@@ -159,8 +162,8 @@ heap_header* mclstr_sub(u32 start, u32 end, heap_header* str, MCHeap* heap) {
     return result;
 }
 
-heap_header* mclstr_rep(u32 n, heap_header* str, MCHeap* heap) {
-    heap_header* result = NULL;
+HeapHeader* mclstr_rep(u32 n, HeapHeader* str, MCHeap* heap) {
+    HeapHeader* result = NULL;
     u32 srclen = 0;
     char* dst = NULL;
 
