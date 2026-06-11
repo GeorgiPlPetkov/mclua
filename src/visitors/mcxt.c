@@ -1,4 +1,4 @@
-#include <dlfcn.h>
+#include "mcloadlib.h"
 #include <stddef.h>
 #include <stdio.h>
 
@@ -95,16 +95,16 @@ i8 mcxt_load_tkv(MCExt* ext, const char* path) {
         return -1;
     }
 
-    ext->handles[slot] = dlopen(path, RTLD_NOW | RTLD_LOCAL);
+    ext->handles[slot] = LIBOPEN(path);
     if (NULL == ext->handles[slot]) {
-        printf("[mcxt] cannot load token visitor %s: %s\n", path, dlerror());
+        printf("[mcxt] cannot load token visitor %s: %s\n", path, LIBERR());
         return -1;
     }
 
-    *(void**)(&fn) = dlsym(ext->handles[slot], "mctkv_load");
+    *(void**)(&fn) = LIBSYM(ext->handles[slot], "mctkv_load");
     if (NULL == fn) {
         printf("[mcxt] %s: missing symbol mctkv_load\n", path);
-        dlclose(ext->handles[slot]);
+        LIBCLOSE(ext->handles[slot]);
         return -1;
     }
 
@@ -121,15 +121,17 @@ i8 mcxt_load_astv(MCExt* ext, const char* path) {
         printf("[mcxt] visitor limit reached (max %u)\n", ext->max);
         return -1;
     }
-    ext->handles[slot] = dlopen(path, RTLD_NOW | RTLD_LOCAL);
+
+    ext->handles[slot] = LIBOPEN(path);
     if (NULL == ext->handles[slot]) {
-        printf("[mcxt] cannot load AST visitor %s: %s\n", path, dlerror());
+        printf("[mcxt] cannot load AST visitor %s: %s\n", path, LIBERR());
         return -1;
     }
-    *(void**)(&fn) = dlsym(ext->handles[slot], "mcastv_load");
+
+    *(void**)(&fn) = LIBSYM(ext->handles[slot], "mcastv_load");
     if (NULL == fn) {
         printf("[mcxt] %s: missing symbol mcastv_load\n", path);
-        dlclose(ext->handles[slot]);
+        LIBCLOSE(ext->handles[slot]);
         return -1;
     }
 
@@ -154,6 +156,7 @@ i8 mcxt_run_tkv(MCExt* ext, TokenArray* arr) {
 i8 mcxt_run_astv(MCExt* ext, HeapHeader* root) {
     i8 rcode = 0;
     u32 end  = ext->tkv_count + ext->astv_count;
+
     for (u32 idx = ext->tkv_count; idx < end; idx += 1) {
         rcode = astv_run((ASTVisitor*) ext->visitors[idx], root);
         if (rcode < 0) {
@@ -168,7 +171,8 @@ i8 mcxt_run_astv(MCExt* ext, HeapHeader* root) {
 
 void mcxt_free(MCExt* ext) {
     u32 total = ext->tkv_count + ext->astv_count;
+
     for (u32 idx = 0; idx < total; idx += 1) {
-        dlclose(ext->handles[idx]);
+        LIBCLOSE(ext->handles[idx]);
     }
 }
